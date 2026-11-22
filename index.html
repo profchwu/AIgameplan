@@ -70,7 +70,42 @@ button.pri,.btn.pri{background:var(--coral);border-color:var(--coral);color:#fff
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 12px}
 .chips button{min-height:38px;padding:6px 12px;font-size:14px;font-weight:400}
 .chips button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;max-height:460px;overflow:auto;padding:2px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;padding:2px}
+.supers{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin:10px 0}
+.super{text-align:left;display:flex;flex-direction:column;gap:4px;border-radius:16px;border:2px solid color-mix(in srgb,var(--c) 35%,var(--line));background:color-mix(in srgb,var(--c) 8%,var(--bg));padding:14px;font-weight:400}
+.super b{font-size:17px}
+.super .n{font:800 13px "Baloo 2",sans-serif;color:#fff;background:var(--c);border-radius:999px;padding:1px 9px;align-self:flex-start}
+.super span{font-size:13px;color:var(--muted)}
+.super.has{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c)}
+.crumb{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0}
+.crumb b{font-size:17px}
+.tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-top:14px}
+.tool{display:flex;flex-direction:column;gap:6px;padding:14px;border:1.5px solid var(--line);border-radius:14px;background:var(--panel)}
+.tool b{font-size:16px}
+.tool span{font-size:13px;color:var(--muted)}
+.tool button,.tool label.btnlike{align-self:flex-start;margin-top:auto}
+label.btnlike{display:inline-flex;align-items:center;min-height:44px;padding:8px 16px;border-radius:999px;border:1.5px solid var(--ink);font-weight:700;font-size:15px;cursor:pointer}
+label.btnlike input{position:absolute;width:1px;height:1px;opacity:0}
+#printView{display:none}
+@media print{
+ @page{size:A4;margin:14mm 14mm 16mm}
+ body{background:#fff;color:#000;font-size:11pt}
+ header,nav,main,#finish,footer,.toast{display:none!important}
+ #printView{display:block}
+ #printView h1{font-size:20pt;margin:0 0 2mm}
+ #printView .pmeta{font-size:9.5pt;color:#444;margin:0 0 6mm}
+ #printView h2{font-size:13.5pt;margin:6mm 0 2mm;padding-bottom:1mm;border-bottom:1.5pt solid #000;break-after:avoid}
+ #printView h3{font-size:11pt;margin:3mm 0 1mm;break-after:avoid}
+ #printView table{width:100%;border-collapse:collapse;margin:1mm 0 2mm;font-size:10pt}
+ #printView th,#printView td{border:0.6pt solid #888;padding:1.5mm 2mm;vertical-align:top;text-align:left}
+ #printView th{width:32%;background:#f2f2f2;color:#000;font-weight:700}
+ #printView td.blank{height:9mm}
+ #printView ul{margin:1mm 0;padding-left:5mm}
+ #printView li{margin:0.6mm 0;break-inside:avoid}
+ #printView .ref{font-size:9pt;padding-left:5mm;text-indent:-5mm;margin:0.8mm 0}
+ #printView section{break-inside:auto}
+ #printView tr{break-inside:avoid}
+}
 .card{text-align:left;border-radius:12px;border:1.5px solid var(--line);background:var(--panel);padding:10px 12px;font-weight:400;display:flex;flex-direction:column;gap:2px;min-height:0}
 .card b{font-size:15px}
 .card span{font-size:13px;color:var(--muted)}
@@ -152,16 +187,24 @@ footer a{color:var(--teal)}
 <main id="steps"></main>
 <section class="band" id="finish">
  <div class="wrap">
-  <h2>完成：匯出你的規劃</h2>
-  <p class="lead">把所有填寫內容、選擇與勾選狀態整理成一份文字，可貼到文件或交給老師。</p>
-  <div class="row"><button class="pri" id="copyAll">複製完整規劃</button><button id="reset">清除重來</button></div>
+  <h2>匯出、列印與備份</h2>
+  <p class="lead">把填寫內容、選擇與勾選狀態列印成學習單、下載成檔案，或備份到另一台裝置。沒填的欄位列印時會留空白線，可直接當紙本學習單使用。</p>
+  <div class="tools">
+   <div class="tool"><b>列印／另存 PDF</b><span>A4 版面，含十個關卡、已選量表題目與 APA 文獻。在列印視窗選「另存為 PDF」即可存檔。</span><button class="pri" id="printBtn">列印／另存 PDF</button></div>
+   <div class="tool"><b>下載規劃檔（Markdown）</b><span>.md 文字檔，可貼進 Word、Google 文件、Notion 或交給 ChatGPT／Claude 繼續優化。</span><button id="dlMd">下載 .md 檔</button></div>
+   <div class="tool"><b>下載備份檔（JSON）</b><span>保存全部填寫進度。換電腦或交作業時，對方用「匯入備份」就能完整還原。</span><button id="dlJson">下載備份檔</button></div>
+   <div class="tool"><b>匯入備份</b><span>選擇之前下載的 .json 備份檔，會取代這台裝置目前的內容。</span><label class="btnlike" for="importFile">選擇備份檔<input type="file" id="importFile" accept=".json,application/json"></label></div>
+   <div class="tool"><b>複製完整規劃</b><span>整份規劃複製到剪貼簿，直接貼上使用。</span><button id="copyAll">複製文字</button></div>
+   <div class="tool"><b>清除重來</b><span>清空這台裝置上的所有內容。建議先下載備份。</span><button id="reset">清除重來</button></div>
+  </div>
  </div>
 </section>
 <footer class="band">
  <div class="wrap">
-  <p>填寫內容只存在你這台裝置的瀏覽器中，換裝置請用「匯出」頁複製保存。</p>
+  <p>填寫內容只存在你這台裝置的瀏覽器中；換裝置請到「匯出／列印」頁下載備份檔。</p>
  </div>
 </footer>
+<div id="printView" aria-hidden="true"></div>
 <div class="toast" id="toast" role="status"></div>
 <script>
 {
@@ -278,10 +321,19 @@ const STEPS=[
  prompts:[['分析後台資料',()=>`附件是學生玩教育遊戲的後台資料（欄位：座號、前測分數、後測分數、錯題題號、遊玩時間），以及問卷結果（${svNames()}）。\n請幫我分析：\n1. 全班前後測平均分、進步幅度與統計檢定結果（附效果量）\n2. 錯誤率最高的 3 題及可能迷思\n3. 需要個別補救的學生座號\n4. 問卷各構面平均與信度（Cronbach's α）\n5. 下一堂課的補強方式（2–3 個具體活動）\n請用表格呈現。`]]}];
 
 const fieldHTML=s=>s.fields?`<div class="grid">${s.fields.map(([k,l,h,w])=>{const tag=w?`<textarea id="f-${k}" data-k="${k}" placeholder="${esc(h)}">${esc(state.f[k])}</textarea>`:`<input type="text" id="f-${k}" data-k="${k}" placeholder="${esc(h)}" value="${esc(state.f[k])}">`;return `<label class="f${w?' wide':''}" for="f-${k}">${l}${tag}</label>`}).join('')}</div>`:'';
-const CAT_G=['全部',...new Set(GAMES.map(g=>g[0]))],CAT_S=['全部',...new Set(STYLES.map(g=>g[0]))];
-let gCat='全部',sCat='全部',inst='';
+const SUPER=[['教學互動型','問答、配對、分類、文字，製作最快，適合記憶與理解','#137a7f',['問答','配對','分類排序','文字']],
+ ['動作反應型','反應、射擊、平台跳躍、運動，適合熟練度與快速辨識','#e8590c',['反應動作','射擊','動作冒險','運動競速','休閒']],
+ ['角色敘事型','RPG、互動小說、偵探，適合情境判斷與長期動機','#d6336c',['敘事','角色扮演']],
+ ['解謎策略型','密室、邏輯、桌遊、策略，適合推理與綜合應用','#3b5bdb',['解謎','桌遊棋盤','策略']],
+ ['模擬經營型','經營、實驗、建造、養成，適合因果關係與決策','#2b8a3e',['模擬','生存創造','其他']],
+ ['探索與 3D 世界','地圖尋寶、3D 島嶼、虛擬導覽、VR','#7048e8',['探索','3D 世界']],
+ ['多人社交型','全班競賽、小組合作、派對遊戲','#c2255c',['多人','派對社交']],
+ ['AI 驅動型','AI 角色對話、自適應出題、AI 評分','#1d1b2e',['AI 驅動']]];
+const superOf=cat=>SUPER.find(x=>x[3].includes(cat));
+const CAT_S=['全部',...new Set(STYLES.map(g=>g[0]))];
+let gSuper=null,gCat='全部',sCat='全部',inst='';
 const custom={
- games:()=>`<h3>遊戲類型總表（${GAMES.length} 種）</h3><div class="chips" id="gChips"></div><div class="cards" id="gCards"></div><p class="pick">已選：<em id="gPick"></em></p>`,
+ games:()=>`<h3>先選大類，再選類型（共 ${SUPER.length} 大類、${GAMES.length} 種）</h3><div id="gBox"></div><p class="pick">已選：<em id="gPick"></em></p>`,
  styles:()=>`<h3>視覺風格總表（${STYLES.length} 種）</h3><div class="chips" id="sChips"></div><div class="cards" id="sCards"></div><p class="pick">已選：<em id="sPick"></em></p><h3>風格細節</h3>`,
  store:()=>`<h3>後台儲存方式</h3><div class="opts">${STORE.map(([id,n,d])=>`<label class="opt"><input type="radio" name="storage" value="${n}" ${state.f.storage===n?'checked':''}><span>${n}<small>${d}</small></span></label>`).join('')}</div><h3>測驗設計</h3>`,
  survey:()=>`<div class="likert">${L5.map(x=>`<span>${x}</span>`).join('')}</div>
@@ -302,11 +354,14 @@ $('#steps').innerHTML=STEPS.map((s,i)=>`<section class="step band" id="${s.id}">
  ${s.prompts.map((p,j)=>`<div class="prompt"><div class="ph"><span>AI 提示詞：${p[0]}</span><button data-copy="${s.id}-${j}">複製</button></div><pre id="p-${s.id}-${j}"></pre></div>`).join('')}
  <div class="pager">${i?`<a class="btn" href="#${STEPS[i-1].id}">← 上一關：${STEPS[i-1].short}</a>`:'<span></span>'}<a class="btn pri" href="#${i<STEPS.length-1?STEPS[i+1].id:'finish'}">${i<STEPS.length-1?'下一關：'+STEPS[i+1].short+' →':'前往匯出 →'}</a></div>
 </div></section>`).join('');
-$('#tabs').innerHTML=STEPS.map((s,i)=>`<a href="#${s.id}" id="t-${s.id}">${i+1} ${s.short}</a>`).join('')+'<a href="#finish">匯出</a>';
+$('#tabs').innerHTML=STEPS.map((s,i)=>`<a href="#${s.id}" id="t-${s.id}">${i+1} ${s.short}</a>`).join('')+'<a href="#finish">匯出／列印</a>';
 
 const promptText=(sid,j)=>STEPS.find(s=>s.id===sid).prompts[j][1]().replace(/⟦([^⟧]*)⟧/g,'【$1】');
 const renderPrompts=()=>STEPS.forEach(s=>s.prompts.forEach((p,j)=>{$('#p-'+s.id+'-'+j).innerHTML=esc(p[1]()).replace(/⟦([^⟧]*)⟧/g,'<mark>【$1】</mark>')}));
-const renderGames=()=>{$('#gChips').innerHTML=CAT_G.map(c=>`<button aria-pressed="${c===gCat}" data-gc="${c}">${c}</button>`).join('');$('#gCards').innerHTML=GAMES.filter(g=>gCat==='全部'||g[0]===gCat).map(g=>`<button class="card" data-g="${esc(g[1])}" aria-pressed="${state.f.gametype===g[1]}"><b>${g[1]}</b><span>${g[2]}</span><span class="stars">${'★'.repeat(g[3])}</span></button>`).join('');$('#gPick').textContent=state.f.gametype||'尚未選擇';};
+const renderGames=()=>{const box=$('#gBox');const pick=state.f.gametype;const pickSup=pick?superOf((GAMES.find(g=>g[1]===pick)||[])[0]):null;
+ if(gSuper===null){box.innerHTML=`<div class="supers">${SUPER.map((x,i)=>{const list=GAMES.filter(g=>x[3].includes(g[0]));return `<button class="super${pickSup===x?' has':''}" data-sup="${i}" style="--c:${x[2]}"><span class="n">${list.length} 種</span><b>${x[0]}</b><span>${x[1]}</span><span>例：${list.slice(0,3).map(g=>g[1].split('（')[0]).join('、')}</span></button>`}).join('')}</div>`;}
+ else{const x=SUPER[gSuper];const subs=['全部',...x[3]];box.innerHTML=`<div class="crumb"><button data-sup="back">← 全部大類</button><b style="color:${x[2]}">${x[0]}</b></div><div class="chips">${subs.map(c=>`<button aria-pressed="${c===gCat}" data-gc="${c}">${c}</button>`).join('')}</div><div class="cards">${GAMES.filter(g=>x[3].includes(g[0])&&(gCat==='全部'||g[0]===gCat)).map(g=>`<button class="card" data-g="${esc(g[1])}" aria-pressed="${pick===g[1]}"><b>${g[1]}</b><span>${g[2]}</span><span class="stars">${'★'.repeat(g[3])}</span></button>`).join('')}</div>`;}
+ $('#gPick').textContent=pick?(pickSup?pickSup[0]+' › ':'')+pick:'尚未選擇';};
 const renderStyles=()=>{$('#sChips').innerHTML=CAT_S.map(c=>`<button aria-pressed="${c===sCat}" data-sc="${c}">${c}</button>`).join('');$('#sCards').innerHTML=STYLES.filter(g=>sCat==='全部'||g[0]===sCat).map(g=>`<button class="card" data-s="${esc(g[1])}" data-kw="${esc(g[2])}" aria-pressed="${state.f.style===g[1]}"><b>${g[1]}</b><code>${g[2]}</code><span>${g[3]}</span></button>`).join('');$('#sPick').textContent=state.f.style||'尚未選擇';};
 let iCat='all';
 const catOf=id=>CATS.find(c=>c[0]===id);
@@ -349,13 +404,34 @@ const refsOf=I=>[...I.orig,...I.recent];
 const surveyText=()=>INST.filter(i=>state.sv.includes(i.id)).map(I=>`【${I.name}】\n計分：${I.scale}\n`+I.items.map((r,k)=>`${k+1}. ${r[1]}\n   ${r[2]}`).join('\n')).join('\n\n');
 const allText=()=>{let o=`# AI 教育遊戲開發規劃\n完成度：${$('#pct').textContent}\n`;STEPS.forEach((s,i)=>{o+=`\n## ${i+1}. ${s.title}\n`;(s.fields||[]).forEach(([k,l])=>{if(state.f[k])o+=`- ${l}：${state.f[k]}\n`});
  if(s.id==='s2')o+=`- 遊戲類型：${state.f.gametype||'未選'}\n`;if(s.id==='s4')o+=`- 後台：${state.f.storage||'未選'}\n`;if(s.id==='s5')o+=`- 問卷量表：${state.sv.length?svNames():'未選'}\n`;if(s.id==='s6')o+=`- 主風格：${state.f.style||'未選'}\n`;if(s.id==='s8')o+=`- 平台：${state.f.platform||'未選'}\n`;
- s.checks.forEach((c,j)=>o+=`- [${state.c[s.id+'-'+j]?'x':' '}] ${c}\n`)});if(state.sv.length)o+=`\n## 問卷題目\n${surveyText()}\n`;return o;};
+ s.checks.forEach((c,j)=>o+=`- [${state.c[s.id+'-'+j]?'x':' '}] ${c}\n`)});if(state.sv.length)o+=`\n## 問卷題目\n${surveyText()}\n\n## 參考文獻（APA 7）\n${selRefs().map(r=>'- '+r).join('\n')}\n`;return o;};
+const selRefs=()=>[...new Set(INST.filter(i=>state.sv.includes(i.id)).flatMap(refsOf))].sort();
+const stamp=()=>{const d=new Date();const z=n=>String(n).padStart(2,'0');return `${d.getFullYear()}${z(d.getMonth()+1)}${z(d.getDate())}`;};
+const fileBase=()=>'AI教育遊戲規劃'+(state.f.unit?'_'+state.f.unit.replace(/[\\/:*?"<>|\s]+/g,''):'')+'_'+stamp();
+const dl=(name,text,type)=>{try{const u=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(u);a.remove();},1500);toast('已開始下載');}catch(e){toast('無法下載，請改用「複製文字」');}};
+const ph=x=>x?esc(x).replace(/\n/g,'<br>'):'';
+const printHTML=()=>{const d=new Date();let h=`<h1>AI 教育遊戲開發規劃學習單</h1><p class="pmeta">列印日期：${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}　完成度：${$('#pct').textContent}　姓名／組別：＿＿＿＿＿＿＿＿＿＿</p>`;
+ STEPS.forEach((s,i)=>{h+=`<section><h2>${i+1}. ${s.title}</h2>`;const rows=[...(s.fields||[]).map(([k,l])=>[l,state.f[k]])];
+  if(s.id==='s2')rows.unshift(['遊戲類型',state.f.gametype?((superOf((GAMES.find(g=>g[1]===state.f.gametype)||[])[0])||[''])[0]+' › '+state.f.gametype):'']);
+  if(s.id==='s4')rows.push(['後台儲存方式',state.f.storage]);
+  if(s.id==='s5')rows.push(['選用量表',state.sv.length?svNames():'']);
+  if(s.id==='s6')rows.unshift(['主風格',state.f.style]);
+  if(s.id==='s8')rows.unshift(['發布平台',state.f.platform]);
+  if(rows.length)h+=`<table>${rows.map(([l,v])=>`<tr><th>${esc(l)}</th><td${v?'':' class="blank"'}>${ph(v)}</td></tr>`).join('')}</table>`;
+  h+=`<h3>檢核</h3><ul style="list-style:none;padding-left:0">${s.checks.map((c,j)=>`<li>${state.c[s.id+'-'+j]?'☑':'☐'} ${esc(c)}</li>`).join('')}</ul></section>`;});
+ const sel=INST.filter(i=>state.sv.includes(i.id));
+ if(sel.length){h+=`<section><h2>問卷題目（Likert 5 點：1 非常不同意 ～ 5 非常同意）</h2>`;sel.forEach(I=>{h+=`<h3>${esc(I.name)}</h3><table>${I.items.map((r,k)=>`<tr><th>${k+1}. ${esc(r[0])}</th><td>${esc(r[1])}<br><span style="color:#555">${esc(r[2])}</span></td></tr>`).join('')}</table>`});
+  h+=`<h2>參考文獻（APA 7）</h2>${selRefs().map(r=>`<p class="ref">${esc(r)}</p>`).join('')}</section>`;}
+ return h;};
+const doPrint=()=>{$('#printView').innerHTML=printHTML();try{window.print();}catch(e){toast('請用瀏覽器選單的「列印」');}};
+addEventListener('beforeprint',()=>{$('#printView').innerHTML=printHTML();});
 
 document.addEventListener('input',e=>{const k=e.target.dataset.k;if(k){state.f[k]=e.target.value;save();renderPrompts();}});
 document.addEventListener('change',e=>{const t=e.target;if(t.dataset.c){state.c[t.dataset.c]=t.checked;save();progress();}if(t.name==='storage'||t.name==='platform'){state.f[t.name]=t.value;save();renderPrompts();}});
 document.addEventListener('click',e=>{const b=e.target.closest('button,[data-go]');if(!b)return;const d=b.dataset;
  if(d.go){location.hash=d.go;}
  else if(d.copy){const [sid,j]=d.copy.split('-');copy(promptText(sid,+j));}
+ else if(d.sup){if(d.sup==='back'){gSuper=null;}else{gSuper=+d.sup;gCat='全部';}renderGames();}
  else if(d.gc){gCat=d.gc;renderGames();}
  else if(d.g){state.f.gametype=d.g;save();renderGames();renderPrompts();}
  else if(d.sc){sCat=d.sc;renderStyles();}
@@ -368,7 +444,11 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,[data-go]
  else if(d.add){const id=d.add;state.sv=state.sv.includes(id)?state.sv.filter(x=>x!==id):[...state.sv,id];save();renderInst();renderPrompts();}
  else if(b.id==='copySurvey'){state.sv.length?copy(surveyText()):toast('請先加入至少一個量表');}
  else if(b.id==='copyAll'){copy(allText());}
+ else if(b.id==='printBtn'){doPrint();}
+ else if(b.id==='dlMd'){dl(fileBase()+'.md',allText(),'text/markdown;charset=utf-8');}
+ else if(b.id==='dlJson'){dl(fileBase()+'.json',JSON.stringify({app:'AIgameplan',version:2,exported:new Date().toISOString(),state},null,2),'application/json');}
  else if(b.id==='reset'){if(b.dataset.armed){state={f:{},c:{},sv:[]};save();location.reload();}else{b.dataset.armed='1';b.textContent='再按一次確認清除';setTimeout(()=>{delete b.dataset.armed;b.textContent='清除重來'},3000);}}});
+document.addEventListener('change',async e=>{if(e.target.id!=='importFile')return;const f=e.target.files[0];if(!f)return;try{const o=JSON.parse(await f.text());const st=o.state||o;if(!st||typeof st!=='object'||!('f' in st))throw 0;state={f:{},c:{},sv:[],...st};save();toast('已匯入備份');setTimeout(()=>location.reload(),600);}catch(err){toast('檔案格式不正確，請選擇本網站下載的備份檔');}e.target.value='';});
 document.addEventListener('keydown',e=>{const g=e.target.closest&&e.target.closest('[data-go]');if(g&&(e.key==='Enter'||e.key===' ')){e.preventDefault();location.hash=g.dataset.go;}});
 
 addEventListener('hashchange',()=>{show();scrollTo(0,0);});
