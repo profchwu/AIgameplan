@@ -157,6 +157,467 @@ td.en{color:var(--muted)}
 .ref{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;padding:10px 12px;border-radius:10px;background:var(--panel);margin-bottom:6px}
 .ref p{margin:0;font-size:14px;overflow-wrap:anywhere;padding-left:1.5em;text-indent:-1.5em}
 .ref a{color:var(--teal)}
+.nodoi{font-size:12px;color:var(--muted);white-space:nowrap}
+button.mini{flex:none;min-height:36px;padding:4px 12px;font-size:13px}
+.meta{background:var(--panel);border-radius:12px;padding:12px 14px;margin-bottom:10px;font-size:14px}
+.meta p{margin:2px 0}
+.likert{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.likert span{padding:4px 10px;border-radius:999px;background:var(--panel);font-size:13px;border:1px solid var(--line)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.on{opacity:1}
+footer{font-size:13px;color:var(--muted)}
+.refs{font-size:13px;color:var(--muted);padding-left:18px}
+.refs li{margin-bottom:4px;overflow-wrap:anywhere}
+.refs a{color:var(--teal)}
+footer a{color:var(--teal)}
+@media(max-width:600px){.grid{grid-template-columns:minmax(0,1fr)}.fig{height:300px}table{font-size:13px}.stack thead{display:none}.stack tr{display:grid;padding-block:8px;border-bottom:1px solid var(--line)}.stack td{border:0;padding:2px 0}}
+@media(prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+<header class="band">
+ <div class="wrap">
+  <h1>AI 教育遊戲開發任務地圖</h1>
+  <p class="sub">十個關卡帶你從選單元走到上線與成效分析，一關一頁。勾完一關的檢核項目就算過關；你填的資料會自動帶進每一關的 AI 提示詞。</p>
+  <div class="hud"><span class="big" id="pct">0%</span><span id="cleared">已過 0 / 10 關</span><span id="saveNote"></span></div>
+  <div class="fig" id="map"><svg id="mapSvg" role="img" aria-label="十個關卡的進度地圖"></svg></div>
+ </div>
+</header>
+<nav class="tabs" aria-label="關卡"><div class="scroll" id="tabs"></div></nav>
+<main id="steps"></main>
+<section class="band" id="finish">
+ <div class="wrap">
+  <h2>匯出、列印與備份</h2>
+  <p class="lead">把填寫內容、選擇與勾選狀態列印成學習單、下載成檔案，或備份到另一台裝置。沒填的欄位列印時會留空白線，可直接當紙本學習單使用。</p>
+  <div class="tools">
+   <div class="tool"><b>列印／另存 PDF</b><span>A4 版面，含十個關卡、已選量表題目與 APA 文獻。在列印視窗選「另存為 PDF」即可存檔。</span><button class="pri" id="printBtn">列印／另存 PDF</button></div>
+   <div class="tool"><b>下載規劃檔（Markdown）</b><span>.md 文字檔，可貼進 Word、Google 文件、Notion 或交給 ChatGPT／Claude 繼續優化。</span><button id="dlMd">下載 .md 檔</button></div>
+   <div class="tool"><b>下載備份檔（JSON）</b><span>保存全部填寫進度。換電腦或交作業時，對方用「匯入備份」就能完整還原。</span><button id="dlJson">下載備份檔</button></div>
+   <div class="tool"><b>匯入備份</b><span>選擇之前下載的 .json 備份檔，會取代這台裝置目前的內容。</span><label class="btnlike" for="importFile">選擇備份檔<input type="file" id="importFile" accept=".json,application/json"></label></div>
+   <div class="tool"><b>複製完整規劃</b><span>整份規劃複製到剪貼簿，直接貼上使用。</span><button id="copyAll">複製文字</button></div>
+   <div class="tool"><b>清除重來</b><span>清空這台裝置上的所有內容。建議先下載備份。</span><button id="reset">清除重來</button></div>
+  </div>
+ </div>
+</section>
+<footer class="band">
+ <div class="wrap">
+  <p>填寫內容只存在你這台裝置的瀏覽器中；換裝置請到「匯出／列印」頁下載備份檔。　<a href="course.html">課程教材：這個網站是怎麼用 AI 做出來的</a>　<a href="https://github.com/profchwu/AIgameplan">GitHub 原始碼與開發紀錄</a></p>
+  <p>© 2026 吳智鴻．國立清華大學數理教育研究所．版權所有。教學使用請註明出處。</p>
+ </div>
+</footer>
+<div id="printView" aria-hidden="true"></div>
+<div class="toast" id="toast" role="status"></div>
+<script>
+{
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let state={f:{},c:{},sv:[]};
+try{const raw=localStorage.getItem('aiEduGame2');if(raw)state=Object.assign(state,JSON.parse(raw));}catch(e){}
+const save=()=>{try{localStorage.setItem('aiEduGame2',JSON.stringify(state));$('#saveNote').textContent='已自動儲存在這台裝置';}catch(e){$('#saveNote').textContent='此瀏覽器無法儲存，請用「複製完整規劃」保留內容';}};
+const v=(k,ph)=>{const x=(state.f[k]||'').trim();return x?x:'⟦'+ph+'⟧';};
+
+const GAMES=[["問答","選擇題問答闖關","記憶、理解",1],["問答","搶答／益智節目式","記憶、複習",1],["問答","是非快答／限時挑戰","快速辨識、澄清迷思",1],["問答","填空／克漏字","關鍵詞、語法",1],["問答","賓果問答","全班複習",1],["問答","轉盤／抽卡問答","隨機複習、口說",1],["配對","翻牌配對（記憶卡）","圖文、詞義對應",1],["配對","連連看","概念對應",1],["配對","拖曳配對","名詞與定義",2],["分類排序","拖曳分類","歸類、比較異同",2],["分類排序","排序／時間軸","步驟、時序、流程",2],["分類排序","拼圖","整體與部分、地理",2],["分類排序","圖片標示（地圖、人體、構造）","位置辨認、名稱",2],["文字","填字遊戲 Crossword","詞彙、定義",2],["文字","找字遊戲 Word Search","拼字辨認",1],["文字","猜字（Wordle 式、吊人）","拼字、字形",2],["文字","字母／部件重組","拼字、中文部件",2],["文字","打字遊戲","詞彙、打字熟練",2],["反應動作","接物／打地鼠答題","快速辨識",2],["反應動作","射擊答題（太空射擊、射氣球）","辨識、計算",2],["反應動作","跑酷／躲避答題","熟練度",3],["反應動作","貪食蛇／打磚塊答題","快速辨識",2],["反應動作","節奏音樂遊戲","語音、節奏、口訣",3],["反應動作","競速賽車答題","計算、熟練度",3],["桌遊棋盤","大富翁／飛行棋答題","綜合複習、金錢概念",2],["桌遊棋盤","卡牌對戰","屬性比較、策略",3],["桌遊棋盤","塔防答題","策略、熟練度",3],["解謎","密室逃脫","推理、綜合應用",3],["解謎","邏輯推理／數獨類","邏輯、數感",2],["解謎","路徑規劃／程式積木闖關","運算思維、方位",3],["解謎","物理解謎","力與運動、簡單機械",3],["解謎","找不同／隱藏物品","觀察力",2],["敘事","互動小說／分支選擇","情境判斷、品德、閱讀",2],["敘事","視覺小說（對話加選項）","歷史情境、語言運用",2],["敘事","角色扮演 RPG（打怪答題、升級）","長期複習、動機",3],["敘事","偵探推理（蒐集線索）","證據推理、科學探究",3],["模擬","經營模擬（商店、農場、餐廳）","計算、決策、理財",3],["模擬","科學實驗模擬（調參數）","變因、因果關係",3],["模擬","生態／城市建造","系統思考、永續",3],["模擬","情境決策（防災、交通、網路素養）","判斷與應變",2],["模擬","沙盒創作","創造、設計思考",3],["探索","地圖探索／尋寶","地理、方位、文化",2],["探索","虛擬導覽／場景點選","博物館、校園、古蹟",2],["探索","QR Code／AR 實境闖關","戶外教學、合作",3],["動作冒險","2D 橫向平台跳躍（瑪利歐式）","闖關複習、反應",3],["動作冒險","動作冒險解謎（薩爾達式）","探索、綜合應用",3],["動作冒險","銀河惡魔城式探索（解鎖能力開新區域）","知識累積、遷移",3],["動作冒險","潛行遊戲","觀察、計畫、推理",3],["動作冒險","格鬥對戰答題","快速提取、複習",3],["角色扮演","回合制 RPG（勇者鬥惡龍式）","長期複習、策略",3],["角色扮演","動作 RPG（ARPG）","熟練度、動機",3],["角色扮演","開放世界 RPG","自主探索、跨單元整合",3],["角色扮演","Roguelike 地城探索（每次隨機）","反覆練習、策略",3],["角色扮演","戰棋 SRPG","策略、數學運算",3],["角色扮演","文字冒險 RPG","閱讀理解、寫作",2],["角色扮演","班級 MMO（全班共用世界、任務板）","長期班經、合作",3],["射擊","第一人稱射擊 FPS（射向正確答案）","快速辨識",3],["射擊","第三人稱射擊 TPS","快速辨識、空間",3],["射擊","彈幕／縱向捲軸射擊","專注、反應",3],["射擊","打靶／射箭／投籃答題","計算、估測",2],["射擊","彈弓物理彈射（憤怒鳥式）","拋物線、力與運動",3],["3D 世界","3D 島嶼探索與經營（動物森友會式）","生態、經濟、長期任務",3],["3D 世界","3D 開放世界尋寶","地理、歷史、跨領域",3],["3D 世界","3D 迷宮","方位、空間、程式",3],["3D 世界","3D 密室逃脫","推理、綜合應用",3],["3D 世界","3D 虛擬博物館／校園導覽","文化、歷史、自然",3],["3D 世界","3D 太空／海底探索","天文、海洋生物",3],["3D 世界","體素沙盒建造（Minecraft 式）","幾何、建築、創造",3],["3D 世界","走路模擬器（敘事探索）","閱讀、情意、歷史",3],["3D 世界","VR／360° 沉浸體驗","臨場感、職涯、實地考察",3],["策略","即時戰略 RTS","資源分配、決策",3],["策略","回合制文明策略／4X 帝國","歷史、地理、經濟",3],["策略","大亨經營（Tycoon）","理財、供需、計算",3],["策略","三消益智（Match-3）答題","辨識、複習",2],["運動競速","運動遊戲（足球、籃球、桌球答題）","複習、體育規則",2],["運動競速","體感／鏡頭動作遊戲","健康、動作技能",3],["生存創造","荒島求生建造","資源、科學、問題解決",3],["生存創造","烹飪協作（Overcooked 式）","流程、分工、營養",3],["生存創造","換裝／室內設計","美感、配色、語文詞彙",2],["生存創造","釣魚採集圖鑑收集","生物分類、觀察",2],["派對社交","派對小遊戲合集","全班複習、破冰",3],["派對社交","大逃殺淘汰問答","複習、動機",3],["派對社交","社交推理（狼人殺式）","論證、表達、推理",2],["休閒","無盡跑酷（Subway 式）","熟練度",3],["休閒","寵物對戰收集（神奇寶貝式）","分類、屬性比較",3],["多人","全班即時競賽（排行榜）","複習、動機",3],["多人","小組合作任務","溝通合作、問題解決",3],["其他","放置／點擊累積型","持續練習、成長感",2],["其他","養成遊戲（寵物、植物）","生命教育、習慣",2],["AI 驅動","AI NPC 對話","口語、提問、思辨",3],["AI 驅動","AI 自適應出題","差異化教學",3],["AI 驅動","AI 評分回饋（簡答、作文）","表達、高層次思考",3]];
+const STYLES=[["像素復古","8-bit 像素","8-bit pixel art, retro game","全年齡、程式教育"],["像素復古","16-bit 像素","16-bit pixel art, detailed sprites","冒險、RPG"],["像素復古","復古街機／80 年代","retro arcade, synthwave, 80s","國高中、反應類"],["平面插畫","扁平向量","flat vector illustration, clean shapes","全年齡、最易一致"],["平面插畫","極簡主義","minimalist, simple geometric","數學、邏輯"],["平面插畫","孟菲斯風","Memphis style, bold patterns","國高中、設計"],["平面插畫","線稿／單色","line art, monochrome","科學圖解"],["卡通動漫","Q 版／大頭","chibi, cute, big head","國小"],["卡通動漫","可愛粉彩","kawaii, pastel colors","國小低中年級"],["卡通動漫","日系動漫","anime style, cel shading","國中、劇情"],["卡通動漫","美式卡通","western cartoon, bold outlines","國小、搞笑"],["卡通動漫","漫畫網點","comic book, halftone dots","敘事、語文"],["手繪繪本","繪本風","children's picture book illustration","幼兒、低年級"],["手繪繪本","水彩","watercolor, soft edges","自然、生命教育"],["手繪繪本","蠟筆／兒童畫","crayon drawing, childlike","幼兒、國小"],["手繪繪本","色鉛筆／素描","colored pencil sketch","自然觀察"],["手繪繪本","塗鴉手帳","doodle, hand-drawn notebook","國中、筆記複習"],["手繪繪本","黑板粉筆","chalkboard, chalk drawing","數學、教室情境"],["手作材質","剪紙／紙雕","paper cut-out, layered paper craft","節慶、文化"],["手作材質","黏土／定格動畫","claymation, plasticine","國小、生活"],["手作材質","毛氈／織品","felt craft, knitted texture","幼兒、療癒"],["手作材質","木頭積木／玩具","wooden toy, toy blocks","幼兒、數學"],["3D 立體","3D 卡通渲染","3D cartoon render, soft lighting","全年齡"],["3D 立體","等角／2.5D","isometric, 2.5D","建造、經營"],["3D 立體","低多邊形","low poly","地理、探索"],["3D 立體","黏土感 3D／軟萌","3D clay style, cute 3D icons","國小、介面圖示"],["寫實","寫實插畫","realistic illustration","國高中、歷史、科學"],["寫實","科學圖鑑","scientific illustration, botanical","生物、自然"],["主題世界","科幻太空","sci-fi, space, futuristic","天文、物理"],["主題世界","賽博龐克／霓虹","cyberpunk, neon glow","國高中、資訊"],["主題世界","蒸汽龐克","steampunk, brass gears","機械、工業革命"],["主題世界","奇幻魔法","fantasy, magical, medieval","冒險、語文 RPG"],["主題世界","復古地圖／羊皮紙","vintage map, parchment","歷史、地理尋寶"],["主題世界","療癒田園","cozy, cottagecore","養成、經營"],["文化在地","中國風水墨","Chinese ink wash painting","國文、古詩詞"],["文化在地","台式復古（花磚、廟宇）","Taiwanese retro, majolica tiles, temple art","鄉土、台灣史"],["文化在地","原住民族圖騰","indigenous geometric patterns","多元文化（請族人審閱）"],["文化在地","浮世繪","ukiyo-e, Japanese woodblock","世界文化"],["介面風格","玻璃擬態","glassmorphism UI","選單、按鈕"],["介面風格","新擬物","neumorphism UI","簡約介面"],["介面風格","暗黑霓虹","dark mode, neon accents","競賽、科技感"],["介面風格","便利貼／白板","sticky notes, whiteboard","討論、分類"],["其他","剪影","silhouette, high contrast","解謎、氛圍"],["其他","拼貼／混合媒材","collage, mixed media","社會、媒體素養"]];
+const STORE=[["none","不儲存，截圖繳交","課堂練習 ★"],["form","Google 表單（結束後跳轉）","不寫程式 ★"],["gas","Google 試算表 + Apps Script","自動回傳分數 ★★"],["db","Firebase／Supabase","排行榜、即時 ★★★"]];
+const PLAT=[["Netlify Drop","拖資料夾上傳，最快 ★"],["GitHub Pages","免費穩定、有版本紀錄 ★★"],["Google Sites","嵌入網址當課程入口 ★"],["Vercel／Cloudflare Pages","連 GitHub 自動部署 ★★★"],["itch.io","遊戲平台，可設密碼 ★★"],["AI 工具分享連結","Claude／Gemini 分享 ★"]];
+
+const L5=['1 非常不同意 Strongly disagree','2 不同意 Disagree','3 普通 Neutral','4 同意 Agree','5 非常同意 Strongly agree'];
+const CATS=[['ui','介面 UI/UX','#137a7f'],['cog','認知','#3b5bdb'],['aff','情意','#d6336c'],['skill','技能','#e8590c'],['game','遊戲體驗','#7048e8'],['tam','科技接受','#2b8a3e']];
+const INST=[
+{id:'nielsen',cat:'ui',name:'啟發式評估（Nielsen 十大原則）',purpose:'由專家逐條檢核介面可用性問題',who:'3–5 位專家',when:'開發中、上線前',scale:'1–5 分；≤ 3 分寫下問題與建議',
+ orig:['Nielsen, J., & Molich, R. (1990). Heuristic evaluation of user interfaces. In Proceedings of the SIGCHI Conference on Human Factors in Computing Systems (pp. 249–256). ACM. https://doi.org/10.1145/97243.97281','Nielsen, J. (1994). Enhancing the explanatory power of usability heuristics. In Proceedings of the SIGCHI Conference on Human Factors in Computing Systems (pp. 152–158). ACM. https://doi.org/10.1145/191666.191729'],
+ recent:['Quiñones, D., & Rusu, C. (2017). How to develop usability heuristics: A systematic literature review. Computer Standards & Interfaces, 53, 89–122. https://doi.org/10.1016/j.csi.2017.03.009'],
+ items:[["系統狀態可見","遊戲隨時顯示分數、關卡進度與剩餘時間。","The game always shows the score, level progress and remaining time."],["與真實世界相符","用詞與圖示符合學生的生活經驗與年齡。","Words and icons match students' everyday experience and age."],["使用者掌控與自由","玩家可以暫停、返回或重新開始。","Players can pause, go back or restart easily."],["一致性與標準","按鈕、顏色與操作方式在各關卡一致。","Buttons, colours and controls are consistent across levels."],["錯誤預防","介面設計能避免誤觸或不小心送出答案。","The interface prevents accidental taps or submissions."],["辨認而非回想","玩家不需記住說明，畫面上就看得到提示。","Players need not memorise instructions; cues are visible on screen."],["彈性與效率","新手與熟練玩家都能順利遊玩（如可跳過教學）。","Both novice and experienced players can play smoothly (e.g., skip tutorial)."],["美感與簡約","畫面沒有干擾學習的多餘元素。","The screen contains no unnecessary elements that distract from learning."],["協助修正錯誤","答錯時有清楚、友善的提示與修正方式。","Wrong answers receive clear, friendly hints for correction."],["說明與文件","遊戲有簡單的玩法說明，需要時找得到。","Brief instructions are available whenever needed."]]},
+{id:'cvi',cat:'ui',name:'內容效度專家檢核（CVI）',purpose:'學科專家判斷內容正確與目標對應',who:'3–5 位學科教師',when:'上線前',scale:'1–4 分關聯度；計算 I-CVI 與 S-CVI',
+ orig:['Lynn, M. R. (1986). Determination and quantification of content validity. Nursing Research, 35(6), 382–385.'],
+ recent:['Polit, D. F., & Beck, C. T. (2006). The content validity index: Are you sure you know what\'s being reported? Critique and recommendations. Research in Nursing & Health, 29(5), 489–497. https://doi.org/10.1002/nur.20147','Polit, D. F., Beck, C. T., & Owen, S. V. (2007). Is the CVI an acceptable indicator of content validity? Appraisal and recommendations. Research in Nursing & Health, 30(4), 459–467. https://doi.org/10.1002/nur.20199'],
+ items:[["正確性","遊戲內容的知識正確無誤。","The subject content in the game is accurate."],["目標對應","遊戲任務與單元學習目標一致。","Game tasks align with the unit's learning objectives."],["難度","題目難度適合目標年級。","Item difficulty suits the target grade."],["回饋","遊戲回饋能幫助學生修正迷思。","Feedback helps students correct misconceptions."]]},
+{id:'sus',cat:'ui',name:'SUS 系統可用性量表',purpose:'學生或教師對介面好不好用的整體感受',who:'學生／教師',when:'後測',scale:'5 點；奇數題 = 選項 − 1，偶數題 = 5 − 選項，總和 × 2.5（約 68 為平均）',
+ orig:['Brooke, J. (1996). SUS: A "quick and dirty" usability scale. In P. W. Jordan, B. Thomas, B. A. Weerdmeester, & I. L. McClelland (Eds.), Usability evaluation in industry (pp. 189–194). Taylor & Francis.'],
+ recent:['Lewis, J. R. (2018). The System Usability Scale: Past, present, and future. International Journal of Human–Computer Interaction, 34(7), 577–590. https://doi.org/10.1080/10447318.2018.1455307'],
+ items:[["1","我想我會願意經常使用這個系統。","I think that I would like to use this system frequently."],["2（反向）","我覺得這個系統沒必要地複雜。","I found the system unnecessarily complex."],["3","我覺得這個系統容易使用。","I thought the system was easy to use."],["4（反向）","我想我需要技術人員的協助才能使用這個系統。","I think that I would need the support of a technical person to be able to use this system."],["5","我覺得這個系統的各項功能整合得很好。","I found the various functions in this system were well integrated."],["6（反向）","我覺得這個系統太多不一致的地方。","I thought there was too much inconsistency in this system."],["7","我想大部分的人都能很快學會使用這個系統。","I would imagine that most people would learn to use this system very quickly."],["8（反向）","我覺得這個系統用起來很笨拙。","I found the system very cumbersome to use."],["9","我對使用這個系統很有信心。","I felt very confident using the system."],["10（反向）","我需要先學很多東西才能開始使用這個系統。","I needed to learn a lot of things before I could get going with this system."]]},
+{id:'cl',cat:'cog',name:'認知負荷量表',purpose:'內容難度、介面干擾與投入理解的程度',who:'學生',when:'後測',scale:'0–10 分（0 完全不是，10 完全是）；Paas 題 1–9 分',
+ orig:['Leppink, J., Paas, F., Van der Vleuten, C. P. M., Van Gog, T., & Van Merriënboer, J. J. G. (2013). Development of an instrument for measuring different types of cognitive load. Behavior Research Methods, 45(4), 1058–1072. https://doi.org/10.3758/s13428-013-0334-1','Paas, F. G. W. C. (1992). Training strategies for attaining transfer of problem-solving skill in statistics: A cognitive-load approach. Journal of Educational Psychology, 84(4), 429–434. https://doi.org/10.1037/0022-0663.84.4.429'],
+ recent:['Klepsch, M., Schmitz, F., & Seufert, T. (2017). Development and validation of two instruments measuring intrinsic, extraneous, and germane cognitive load. Frontiers in Psychology, 8, Article 1997. https://doi.org/10.3389/fpsyg.2017.01997'],
+ items:[["內在負荷","遊戲中的學習內容對我來說很複雜。","The learning content in the game was very complex for me."],["內在負荷","遊戲中有很多我覺得很難的概念。","The game covered concepts I found very difficult."],["外在負荷","遊戲的說明或介面不清楚。","The game's instructions or interface were unclear."],["外在負荷","遊戲畫面有很多讓我分心的東西。","The game screen contained many things that distracted me."],["增生負荷","玩這個遊戲提升了我對這個主題的理解。","Playing the game enhanced my understanding of the topic."],["增生負荷","遊戲幫助我把新知識和已經學過的內容連結起來。","The game helped me connect new knowledge with what I already knew."],["心智努力（Paas）","玩這個遊戲時，我花了多少心力？（1 非常低～9 非常高）","How much mental effort did you invest in the game? (1 = very, very low to 9 = very, very high)"]]},
+{id:'bloom',cat:'cog',name:'認知目標自評（Bloom 修訂版）',purpose:'學生自覺在記憶、理解、應用等層次的掌握',who:'學生',when:'前測＋後測',scale:'5 點；需配合測驗分數使用',
+ orig:['Bloom, B. S. (Ed.). (1956). Taxonomy of educational objectives: The classification of educational goals. Handbook I: Cognitive domain. David McKay.'],
+ recent:['Krathwohl, D. R. (2002). A revision of Bloom\'s taxonomy: An overview. Theory Into Practice, 41(4), 212–218. https://doi.org/10.1207/s15430421tip4104_2'],
+ items:[["記憶","我能說出這個單元重要名詞的名稱。","I can name the key terms of this unit."],["理解","我能用自己的話解釋這個單元的概念。","I can explain this unit's concepts in my own words."],["應用","我能運用所學解決新的問題情境。","I can apply what I learned to solve new problems."],["分析","我能比較這個單元中不同概念的異同。","I can compare similarities and differences among this unit's concepts."]]},
+{id:'arcs',cat:'aff',name:'學習動機（ARCS／IMMS）',purpose:'注意、關聯、信心、滿足四個動機面向',who:'學生',when:'前測＋後測',scale:'5 點；精簡版 RIMMS 共 12 題',
+ orig:['Keller, J. M. (1987). Development and use of the ARCS model of instructional design. Journal of Instructional Development, 10(3), 2–10. https://doi.org/10.1007/BF02905780','Keller, J. M. (2010). Motivational design for learning and performance: The ARCS model approach. Springer. https://doi.org/10.1007/978-1-4419-1250-3'],
+ recent:['Loorbach, N., Peters, O., Karreman, J., & Steehouder, M. (2015). Validation of the Instructional Materials Motivation Survey (IMMS) in a self-directed instructional setting aimed at working with technology. British Journal of Educational Technology, 46(1), 204–218. https://doi.org/10.1111/bjet.12138','Wang, S., Christensen, C., Xu, Y., Cui, W., Tong, R., & Shear, L. (2020). Measuring Chinese middle school students\' motivation using the Reduced Instructional Materials Motivation Survey (RIMMS): A validation study in the adaptive learning setting. Frontiers in Psychology, 11, Article 1803. https://doi.org/10.3389/fpsyg.2020.01803'],
+ items:[["注意 Attention","這個單元的學習活動能吸引我的注意力。","The learning activities in this unit capture my attention."],["注意 Attention","學習這個單元時，我會想知道接下來會學到什麼。","While learning this unit, I am curious about what comes next."],["關聯 Relevance","我覺得這個單元的內容和我的生活有關。","I feel the content of this unit is related to my life."],["關聯 Relevance","學會這個單元對我很有用。","Learning this unit is useful to me."],["信心 Confidence","我有信心能學會這個單元的內容。","I am confident that I can learn the content of this unit."],["信心 Confidence","只要努力，我就能完成這個單元的任務。","If I try hard, I can complete the tasks in this unit."],["滿足 Satisfaction","完成這個單元的學習讓我覺得很有成就感。","Completing this unit gives me a sense of achievement."],["滿足 Satisfaction","我喜歡這樣的學習方式。","I enjoy this way of learning."]]},
+{id:'mslq',cat:'aff',name:'自我效能（MSLQ 分量表）',purpose:'學生對學會這個單元的信心',who:'學生',when:'前測＋後測',scale:'原量表 7 點，可改 5 點',
+ orig:['Pintrich, P. R., Smith, D. A. F., Garcia, T., & McKeachie, W. J. (1991). A manual for the use of the Motivated Strategies for Learning Questionnaire (MSLQ). University of Michigan, National Center for Research to Improve Postsecondary Teaching and Learning. https://eric.ed.gov/?id=ED338122','Pintrich, P. R., Smith, D. A. F., Garcia, T., & McKeachie, W. J. (1993). Reliability and predictive validity of the Motivated Strategies for Learning Questionnaire (MSLQ). Educational and Psychological Measurement, 53(3), 801–813. https://doi.org/10.1177/0013164493053003024'],
+ recent:['Credé, M., & Phillips, L. A. (2011). A meta-analytic review of the Motivated Strategies for Learning Questionnaire. Learning and Individual Differences, 21(4), 337–346. https://doi.org/10.1016/j.lindif.2011.03.002'],
+ items:[["自我效能","我相信我能理解這個單元最難的部分。","I believe I can understand the most difficult parts of this unit."],["自我效能","我有信心在這個單元的測驗中表現良好。","I am confident I can do well on tests for this unit."],["自我效能","我確定自己能學會這個單元教的技能。","I am certain I can master the skills taught in this unit."],["態度","我願意在課後繼續探索這個主題。","I am willing to explore this topic further after class."]]},
+{id:'skill',cat:'skill',name:'技能層次自評（動作技能分類）',purpose:'從模仿到熟練自然化的操作技能進展',who:'學生（可搭配教師觀察）',when:'前測＋後測',scale:'5 點；建議另加教師實作評分',
+ orig:['Dave, R. H. (1970). Psychomotor levels. In R. J. Armstrong (Ed.), Developing and writing behavioral objectives (pp. 33–34). Educational Innovators Press.','Simpson, E. J. (1972). The classification of educational objectives in the psychomotor domain (Vol. 3). Gryphon House.','Harrow, A. J. (1972). A taxonomy of the psychomotor domain: A guide for developing behavioral objectives. David McKay.'],
+ recent:[],
+ items:[["模仿 Imitation","我能照著示範完成這個單元的操作。","I can perform the task by following a demonstration."],["操作 Manipulation","我能依照說明獨立完成操作。","I can perform the task independently by following instructions."],["精確 Precision","我能正確且很少出錯地完成操作。","I can perform the task accurately with few errors."],["連貫 Articulation","我能把多個步驟順暢地連起來完成。","I can combine several steps smoothly to complete the task."],["自然化 Naturalization","我能熟練地完成，並應用到新的情境。","I can perform the task fluently and apply it in new situations."]]},
+{id:'egf',cat:'game',name:'EGameFlow 遊戲心流量表',purpose:'學習遊戲帶來的專注、挑戰、沉浸與知識提升',who:'學生',when:'後測',scale:'原量表 7 點，可改 5 點；8 構面',
+ orig:['Fu, F.-L., Su, R.-C., & Yu, S.-C. (2009). EGameFlow: A scale to measure learners\' enjoyment of e-learning games. Computers & Education, 52(1), 101–112. https://doi.org/10.1016/j.compedu.2008.07.004'],
+ recent:['Chen, S.-H., Wu, W.-Y., & Dennison, J. (2018). Validation of EGameFlow: A self-report scale for measuring user experience in video game play. Computers in Entertainment, 16(3), 1–15. https://doi.org/10.1145/3238249'],
+ items:[["專注","玩遊戲時我能專心在任務上。","I could stay focused on the tasks while playing."],["目標明確","我清楚知道每一關要完成什麼。","I clearly knew what to achieve in each level."],["回饋","遊戲會即時告訴我做得對不對。","The game immediately told me whether I was right."],["挑戰","遊戲的難度剛好，不會太簡單也不會太難。","The difficulty was just right, neither too easy nor too hard."],["掌控","我覺得自己能掌控遊戲中的操作。","I felt in control of my actions in the game."],["沉浸","玩遊戲時我忘了時間的流逝。","I lost track of time while playing."],["社會互動","遊戲讓我想和同學討論或比較。","The game made me want to discuss or compete with classmates."],["知識提升","玩完遊戲後，我覺得自己學到了新知識。","After playing, I felt I had learned something new."]]},
+{id:'geq',cat:'game',name:'GEQ 遊戲經驗問卷',purpose:'勝任感、沉浸、心流、緊張、挑戰與正負向情緒',who:'學生',when:'後測',scale:'原量表 0–4 分；核心模組 33 題',
+ orig:['IJsselsteijn, W. A., de Kort, Y. A. W., & Poels, K. (2013). The Game Experience Questionnaire. Technische Universiteit Eindhoven.'],
+ recent:['Law, E. L.-C., Brühlmann, F., & Mekler, E. D. (2018). Systematic review and validation of the Game Experience Questionnaire (GEQ): Implications for citation and reporting practice. In Proceedings of the 2018 Annual Symposium on Computer-Human Interaction in Play (pp. 257–270). ACM. https://doi.org/10.1145/3242671.3242683'],
+ items:[["勝任感","我覺得自己在遊戲中表現得不錯。","I felt I was doing well in the game."],["感官沉浸","遊戲的畫面和故事讓我很投入。","The game's visuals and story drew me in."],["心流","我完全專注在遊戲裡。","I was fully absorbed in the game."],["緊張（反向）","玩遊戲時我覺得煩躁。","I felt irritated while playing."],["挑戰","遊戲讓我覺得需要努力才能過關。","The game made me work hard to progress."],["負向情緒（反向）","玩遊戲時我覺得無聊。","I felt bored while playing."],["正向情緒","玩遊戲讓我覺得開心。","Playing the game made me feel happy."]]},
+{id:'meega',cat:'game',name:'MEEGA+ 教育遊戲品質模型',purpose:'從學生角度評估可用性、玩家體驗與知覺學習',who:'學生',when:'後測',scale:'5 點',
+ orig:['Petri, G., Gresse von Wangenheim, C., & Borgatto, A. F. (2019). MEEGA+: A model for the evaluation of educational games for computing education. Revista Brasileira de Informática na Educação, 27(3), 52–81. https://doi.org/10.5753/rbie.2019.27.03.52'],
+ recent:['Gresse von Wangenheim, C., Petri, G., & Borgatto, A. F. (2025). Using MEEGA/MEEGA+ for the evaluation of educational games: A retrospective. Revista Brasileira de Informática na Educação, 33, 943–971. https://doi.org/10.5753/rbie.2025.5148'],
+ items:[["美感","遊戲的設計很吸引人。","The game design is attractive."],["關聯","遊戲內容和我的興趣有關。","The game content is relevant to my interests."],["挑戰","遊戲的挑戰適合我的程度。","The game's challenge suits my level."],["社會互動","遊戲讓我和同學有良好互動。","The game promoted good interaction with classmates."],["知覺學習","這個遊戲幫助我學會這個單元的內容。","The game helped me learn this unit's content."],["推薦","我會推薦這個遊戲給同學。","I would recommend this game to my classmates."]]},
+{id:'tam',cat:'tam',name:'TAM 科技接受模型',purpose:'知覺有用性、易用性與使用意圖',who:'學生／教師',when:'後測',scale:'5 或 7 點',
+ orig:['Davis, F. D. (1989). Perceived usefulness, perceived ease of use, and user acceptance of information technology. MIS Quarterly, 13(3), 319–340. https://doi.org/10.2307/249008'],
+ recent:['Granić, A., & Marangunić, N. (2019). Technology acceptance model in educational context: A systematic literature review. British Journal of Educational Technology, 50(5), 2572–2593. https://doi.org/10.1111/bjet.12864'],
+ items:[["知覺有用性","使用這個遊戲能幫助我學得更好。","Using this game helps me learn better."],["知覺有用性","使用這個遊戲能提高我的學習效率。","Using this game makes my learning more efficient."],["知覺有用性","我覺得這個遊戲對學習這個單元很有幫助。","I find this game useful for learning this unit."],["知覺易用性","學會操作這個遊戲對我來說很容易。","Learning to operate this game is easy for me."],["知覺易用性","這個遊戲的操作清楚易懂。","Interacting with this game is clear and understandable."],["使用意圖","如果有機會，我願意再用這類遊戲學習。","Given the chance, I would use games like this to learn again."]]}];
+const cite=I=>I.name.split('（')[0];
+
+const play=()=>['故事：'+v('story','故事情境'),'玩家任務：'+v('role','玩家角色與任務'),'操作：'+v('control','點選／拖曳'),'關卡：'+v('levels','3 關，由易到難'),'計分：'+v('score','計分規則'),'限制：'+v('limit','生命值／計時'),'答錯回饋：'+v('wrong','給提示與解析')].join('\n  ');
+const svNames=()=>state.sv.length?INST.filter(i=>state.sv.includes(i.id)).map(i=>i.name).join('、'):'⟦要用的量表，如 SUS、ARCS⟧';
+
+const STEPS=[
+{id:'s1',short:'單元對象',title:'選擇單元、對象',lead:'先決定教誰、教什麼、玩完要學會什麼，遊戲才不會偏離教學目標。這裡填的內容會帶進後面所有提示詞。',
+ fields:[['subject','學科／領域','例：自然'],['grade','年級／對象','例：國小五年級，28 人'],['unit','單元名稱','例：植物的構造與功能'],['time','遊玩時間','建議 5–15 分鐘'],['goals','學習目標（1–3 項）','用「學生能…」開頭，可對應課綱學習表現與學習內容','w'],['prior','先備知識與常見迷思','學生已會什麼？常錯在哪？','w'],['context','使用情境','課堂引起動機／課中練習／課後複習'],['device','使用設備','平板／Chromebook／手機']],
+ checks:['學習目標具體、可以被測量','已確認學生的先備知識與迷思','已確認上課設備與網路狀況'],
+ prompts:[['釐清課綱與學習目標',()=>`你是台灣十二年國教課綱的課程設計專家。我要為${v('grade','年級')}${v('subject','學科')}「${v('unit','單元')}」設計一個約 ${v('time','10 分鐘')} 的教育遊戲，用於${v('context','課後複習')}。\n請幫我：\n1. 列出對應的課綱學習表現與學習內容（標示代碼，並提醒我到課綱原文核對）\n2. 撰寫 2–3 個具體、可測量的學習目標，以「學生能…」開頭，並標示 Bloom 認知層次\n3. 列出這個單元學生常見的 3–5 個迷思\n4. 建議適合的遊玩情境與${v('device','平板')}使用注意事項\n目前的想法：${v('goals','學習目標草稿')}`]]},
+{id:'s2',short:'遊戲類型',title:'選擇遊戲類型',lead:'依學習目標層次選類型：記憶類目標適合問答配對，應用與分析類目標適合模擬或解謎。初次製作建議從 ★ 或 ★★ 開始；3D 類型可請 AI 用 Three.js 或 Babylon.js 製作，屬 ★★★。',custom:'games',
+ checks:['遊戲類型和學習目標層次相符','製作難度在可用時間內可完成','已找 1–2 個參考遊戲並記下想借鏡的地方'],
+ prompts:[['請 AI 推薦遊戲類型',()=>`你是教育遊戲設計師。我的教學資訊如下：\n- 對象：${v('grade','年級')}\n- 單元：${v('unit','單元')}\n- 學習目標：${v('goals','學習目標')}\n- 遊玩時間：${v('time','10 分鐘')}，設備：${v('device','平板')}\n- 我目前考慮的類型：${v('gametype','遊戲類型')}\n請推薦 3 種最適合的遊戲類型，用表格比較：類型、為什麼適合這個學習目標、玩法簡述、製作難度、可能的缺點。最後告訴我最推薦哪一種。`]]},
+{id:'s3',short:'玩法',title:'規劃玩法',lead:'玩法的核心是重複的循環：挑戰 → 作答或操作 → 即時回饋 → 獎勵或下一關。每格寫清楚，AI 寫程式時才精確。',
+ fields:[['story','故事／情境','例：幫助小種子長成大樹'],['role','玩家角色與任務','玩家是誰？要達成什麼？'],['control','操作方式','點選／拖曳／鍵盤／觸控'],['levels','關卡數與難度遞進','例：3 關，辨認 → 分類 → 應用'],['score','計分規則','答對幾分？連擊加分？'],['limit','限制條件','生命值／倒數計時／不限時'],['right','答對的回饋','音效、動畫、稱讚語'],['wrong','答錯的回饋','給提示或解析，不只是「錯了」'],['reward','過關條件與獎勵','徽章、星等、解鎖角色'],['ending','結束畫面','分數、錯題回顧、再玩一次']],
+ checks:['每個關卡都對應到至少一個學習目標','答錯時有學習型回饋','一般學生能在預計時間內玩完','已畫出流程：開始 → 前測 → 關卡 → 後測 → 結束','已用紙上原型跟同學試玩一次'],
+ prompts:[['產生遊戲設計文件（GDD）',()=>`你是教育遊戲企劃。請根據以下資訊寫一份遊戲設計文件（GDD）：\n- 對象：${v('grade','年級')}，單元：${v('unit','單元')}\n- 學習目標：${v('goals','學習目標')}\n- 遊戲類型：${v('gametype','遊戲類型')}，遊玩時間：${v('time','10 分鐘')}\n- 我的初步規劃：\n  ${play()}\n內容要包含：故事與任務、核心循環、各關卡設計（對應目標、難度、題數）、計分與限制、答對答錯回饋文字（答錯給提示不直接給答案）、結束畫面、可能讓學生卡關或無聊的地方與改善建議。請用表格與條列呈現。`]]},
+{id:'s4',short:'前後測後台',title:'規劃前後測評量與後台儲存',lead:'前後測用同樣的學習目標、相近難度的題目，分數差異才能說明遊戲的學習成效。後台決定成績怎麼回到老師手上。',
+ fields:[['preN','前測題數','例：10'],['postN','後測題數','例：10'],['qtype','題型','選擇／是非／配對／簡答'],['bank','題庫來源','課本習作、自編、AI 生成後核對']],custom:'store',
+ checks:['前後測題目不完全相同但難度相當','AI 生成的題目已逐題核對','後台只收座號或代碼，不收真實姓名','已用 2–3 筆測試資料確認後台有收到'],
+ prompts:[['生成前後測題庫',()=>`你是${v('grade','年級')}${v('subject','學科')}命題專家。請依下列學習目標出題：${v('goals','學習目標')}\n1. 出 ${(+state.f.preN||10)+(+state.f.postN||10)} 題${v('qtype','四選一')}題庫，每題標示對應目標與難度（易／中／難）\n2. 錯誤選項要反映常見迷思：${v('prior','學生常見迷思')}，並寫出解析\n3. 分成前測 A 卷 ${v('preN','10')} 題、後測 B 卷 ${v('postN','10')} 題，兩卷目標分配與難度分布相同\n4. 用詞符合${v('grade','年級')}閱讀程度\n5. 輸出成 JSON（question、options、answer、explanation、objective、level）`],
+ ['建立後台儲存',()=>`我是沒有程式背景的老師。請用「${v('storage','Google 試算表 + Apps Script')}」幫我建立教育遊戲的成績後台：\n1. 欄位：時間戳記、座號、前測分數、後測分數、錯題題號、遊玩秒數\n2. 給我接收資料的完整程式碼與設定步驟（每一步要點哪裡）\n3. 給我遊戲端送出資料的 JavaScript\n4. 提醒我哪些設定會影響安全與學生個資`]]},
+{id:'s5',short:'問卷評量',title:'問卷評量工具（學術量表）',lead:'知識成就用前後測測驗衡量；動機、態度、介面可用性與遊戲體驗則用下列 Likert 量表。點量表看中英對照題目，按「加入問卷」選入，最後一鍵複製。',custom:'survey',
+ checks:['已依評量目的選定 2–3 個量表','總題數約 20–30 題，10 分鐘內可答完','前後測要比較的量表（動機、自我效能）題目完全相同','已用 Google Scholar 核對文獻','問卷已經指導教授或專家審閱'],
+ prompts:[ ['組合問卷並規劃分析',()=>`你是教育研究法專家。我要評估一個給${v('grade','年級')}${v('subject','學科')}使用的教育遊戲。\n請幫我組合問卷，包含：${svNames()}。\n要求：\n1. 每題中英對照，用 5 點 Likert 量表，用詞適合${v('grade','學生')}閱讀程度\n2. 標示每題構面與是否為反向題\n3. 列出每個量表的原始引用來源（APA 第 7 版），只列你確定存在的文獻\n4. 轉成可貼入 Google 表單的格式\n5. 說明分析方法：Cronbach's α、前後測比較（成對樣本 t 檢定或 Wilcoxon 符號等級檢定）、效果量`]]},
+{id:'s6',short:'視覺風格',title:'規劃遊戲主視覺風格',lead:'選一種主風格，它的英文關鍵字會自動填入；之後每張圖都用同一組關鍵字，素材才會一致。',custom:'styles',
+ fields:[['keywords','風格關鍵字（英文）','點選上方風格會自動填入，可再修改'],['palette','色票（主／輔／強調）','例：#4CAF50、#FFF8E1、#FF7043'],['font','字型','思源黑體、jf open 粉圓等可免費商用字型'],['hero','主角角色設定','外型、個性、口頭禪'],['ratio','畫面比例','橫向 16:9 或直向'],['ui','介面元件','按鈕、分數列、對話框、過關畫面']],
+ checks:['風格符合學生年齡','文字與背景對比足夠，平板上看得清楚','不只靠顏色區分對錯（加 ✓ ✗ 圖示）','已用 AI 做出一張主視覺概念圖'],
+ prompts:[['請 AI 提出視覺風格方案',()=>`你是遊戲美術總監。我的教育遊戲：\n- 對象：${v('grade','年級')}，單元：${v('unit','單元')}\n- 遊戲類型：${v('gametype','遊戲類型')}，故事：${v('story','故事情境')}\n- 目前偏好的風格：${v('style','風格')}（${v('keywords','風格關鍵字')}）\n請提出 3 種視覺風格方案，每種包含：風格名稱與理由、一組英文風格關鍵字、5 色色票（色碼與用途）、免費商用中文字型、主角外型描述。最後確認文字與背景對比足夠，適合在${v('device','平板')}上閱讀。`]]},
+{id:'s7',short:'AI 素材',title:'運用 AI 生成遊戲素材',lead:'素材分五類：程式、圖片、音效音樂、語音、題目文字。每樣素材都要記下工具、日期與提示詞，方便查授權。',
+ fields:[['tCode','遊戲程式工具','Claude、ChatGPT Canvas、Gemini Canvas'],['tImg','圖片工具','ChatGPT 圖像、Gemini、Adobe Firefly、Midjourney'],['tSound','音樂／音效工具','Suno、ElevenLabs Sound Effects'],['tVoice','語音工具','ElevenLabs、各家 TTS']],
+ checks:['所有圖片都用同一組風格關鍵字生成','角色與道具已去背存成 PNG，單張 < 500 KB','已確認各工具條款允許教學與公開發布','已建立素材來源清單（檔名、工具、日期、提示詞）','AI 生成的題目與知識已人工核對'],
+ prompts:[['生成主角角色圖',()=>`請繪製一個教育遊戲的主角角色：${v('hero','主角外型')}。\n風格：${v('keywords','風格關鍵字')}。\n配色以 ${v('palette','色票')} 為主。\n全身、正面、純白背景、無文字，方便去背。\n另外給我同一角色的「開心、難過、思考」三種表情，風格完全一致。`],
+ ['生成遊戲背景',()=>`請繪製教育遊戲背景：${v('story','故事場景')}。\n風格與角色圖一致：${v('keywords','風格關鍵字')}。\n比例 ${v('ratio','16:9')}，畫面中央留空以放題目對話框，不要有任何文字。`],
+ ['生成音效與音樂',()=>`音效：答對時的歡樂叮咚聲，短促約 1 秒，配合「${v('style','卡通')}」風格。\n音效：答錯時溫和的提示聲，不刺耳，約 1 秒。\n音樂：適合${v('grade','國小')}的輕快循環配樂，無人聲，約 60 秒。`],
+ ['整合成遊戲程式',()=>`你是教育遊戲工程師。請用單一 HTML 檔（含 CSS 與 JavaScript）製作網頁遊戲：\n- 對象：${v('grade','年級')}，單元：${v('unit','單元')}\n- 遊戲類型：${v('gametype','遊戲類型')}\n- 玩法：\n  ${play()}\n- 流程：開始畫面 → 前測 ${v('preN','N')} 題 → 關卡 → 後測 ${v('postN','N')} 題 → 結束畫面（顯示前後測分數與錯題）\n- 視覺：${v('keywords','風格關鍵字')}，色票 ${v('palette','色票')}，字型 ${v('font','思源黑體')}\n- 圖片 player.png、bg.png，音效 correct.mp3、wrong.mp3，先用佔位圖形代替也可以\n- 題目放在程式開頭的 JSON 陣列，方便老師修改\n- 支援觸控，在${v('device','平板')}上正常顯示；介面文字用繁體中文\n請給我完整程式碼，並說明要修改題目時要改哪裡。`]]},
+{id:'s8',short:'發布平台',title:'規劃發布平台',lead:'建議：遊戲本體放 GitHub Pages 或 Netlify，再把網址嵌入 Google Sites 當課程入口，兼顧穩定與管理方便。',custom:'plat',
+ fields:[['url','遊戲網址','上線後填入']],
+ checks:['已在學生實際使用的設備上測試','已在學校網路環境測試（有些學校會擋特定網域）','已製作短網址與 QR Code','程式碼與公開頁面中沒有學生個資或後台密鑰'],
+ prompts:[['一步步教我發布',()=>`我是沒有程式背景的老師，手上有一個 index.html ＋ images 資料夾的網頁遊戲。\n請一步一步教我用「${v('platform','GitHub Pages')}」發布，每一步告訴我要點哪個按鈕。\n發布後再教我：1. 如何嵌入 Google Sites 2. 如何更新檔案 3. 如何做成 QR Code 讓學生掃描。`]]},
+{id:'s9',short:'試玩修正',title:'試玩測試與修正',lead:'上線前至少讓 3–5 位學生或同事試玩，把發現的問題交給 AI 修正，並要求它不要動到正常的功能。',
+ fields:[['bug1','試玩問題 1','例：平板上拖曳沒有反應','w'],['bug2','試玩問題 2','例：第 2 關太難，多數學生卡關','w'],['bug3','試玩問題 3','','w']],
+ checks:['沒有會卡住的 bug','難度適中：多數學生能過關但需要思考','學生不看說明也知道怎麼玩'],
+ prompts:[['請 AI 修正問題',()=>`以下是我的教育遊戲程式碼與試玩回饋。請幫我修正，且不要改動其他正常的功能：\n問題 1：${v('bug1','試玩發現的問題')}\n問題 2：${v('bug2','試玩發現的問題')}\n問題 3：${v('bug3','試玩發現的問題')}\n修正後請給我完整程式碼，並條列你改了哪些地方。\n⟦貼上程式碼⟧`]]},
+{id:'s10',short:'成效分析',title:'課堂實施與成效分析',lead:'用 Kirkpatrick 四層次檢視：反應（喜歡嗎）→ 學習（進步嗎）→ 行為（會運用嗎）→ 結果（班級改變）。',custom:'kirk',
+ fields:[['r1','這次使用 AI 最有幫助的地方','','w'],['r2','AI 產出中需要我修正或把關的地方','','w'],['r3','下一版想增加或改進的功能','','w']],
+ checks:['已完成前後測比較','已根據錯題規劃補救教學','已收集學生意見，列入下一版改進'],
+ prompts:[['分析後台資料',()=>`附件是學生玩教育遊戲的後台資料（欄位：座號、前測分數、後測分數、錯題題號、遊玩時間），以及問卷結果（${svNames()}）。\n請幫我分析：\n1. 全班前後測平均分、進步幅度與統計檢定結果（附效果量）\n2. 錯誤率最高的 3 題及可能迷思\n3. 需要個別補救的學生座號\n4. 問卷各構面平均與信度（Cronbach's α）\n5. 下一堂課的補強方式（2–3 個具體活動）\n請用表格呈現。`]]}];
+
+const fieldHTML=s=>s.fields?`<div class="grid">${s.fields.map(([k,l,h,w])=>{const tag=w?`<textarea id="f-${k}" data-k="${k}" placeholder="${esc(h)}">${esc(state.f[k])}</textarea>`:`<input type="text" id="f-${k}" data-k="${k}" placeholder="${esc(h)}" value="${esc(state.f[k])}">`;return `<label class="f${w?' wide':''}" for="f-${k}">${l}${tag}</label>`}).join('')}</div>`:'';
+const SUPER=[['教學互動型','問答、配對、分類、文字，製作最快，適合記憶與理解','#137a7f',['問答','配對','分類排序','文字']],
+ ['動作反應型','反應、射擊、平台跳躍、運動，適合熟練度與快速辨識','#e8590c',['反應動作','射擊','動作冒險','運動競速','休閒']],
+ ['角色敘事型','RPG、互動小說、偵探，適合情境判斷與長期動機','#d6336c',['敘事','角色扮演']],
+ ['解謎策略型','密室、邏輯、桌遊、策略，適合推理與綜合應用','#3b5bdb',['解謎','桌遊棋盤','策略']],
+ ['模擬經營型','經營、實驗、建造、養成，適合因果關係與決策','#2b8a3e',['模擬','生存創造','其他']],
+ ['探索與 3D 世界','地圖尋寶、3D 島嶼、虛擬導覽、VR','#7048e8',['探索','3D 世界']],
+ ['多人社交型','全班競賽、小組合作、派對遊戲','#c2255c',['多人','派對社交']],
+ ['AI 驅動型','AI 角色對話、自適應出題、AI 評分','#1d1b2e',['AI 驅動']]];
+const superOf=cat=>SUPER.find(x=>x[3].includes(cat));
+const CAT_S=['全部',...new Set(STYLES.map(g=>g[0]))];
+let gSuper=null,gCat='全部',sCat='全部',inst='';
+const custom={
+ games:()=>`<h3>先選大類，再選類型（共 ${SUPER.length} 大類、${GAMES.length} 種）</h3><div id="gBox"></div><p class="pick">已選：<em id="gPick"></em></p>`,
+ styles:()=>`<h3>視覺風格總表（${STYLES.length} 種）</h3><div class="chips" id="sChips"></div><div class="cards" id="sCards"></div><p class="pick">已選：<em id="sPick"></em></p><h3>風格細節</h3>`,
+ store:()=>`<h3>後台儲存方式</h3><div class="opts">${STORE.map(([id,n,d])=>`<label class="opt"><input type="radio" name="storage" value="${n}" ${state.f.storage===n?'checked':''}><span>${n}<small>${d}</small></span></label>`).join('')}</div><h3>測驗設計</h3>`,
+ survey:()=>`<div class="likert">${L5.map(x=>`<span>${x}</span>`).join('')}</div>
+ <div class="catbar" id="catBar"></div><div class="icards" id="iCards"></div>
+ <div class="selbar" id="selBar"></div>
+ <div id="instBody"></div><h3>本關檢核</h3>`,
+ plat:()=>`<h3>發布平台</h3><div class="opts">${PLAT.map(([n,d])=>`<label class="opt"><input type="radio" name="platform" value="${n}" ${state.f.platform===n?'checked':''}><span>${n}<small>${d}</small></span></label>`).join('')}</div>`,
+ kirk:()=>`<div class="scroll"><table class="stack"><thead><tr><th>層次</th><th>問的問題</th><th>對應工具</th></tr></thead><tbody>
+ <tr><td>1 反應 Reaction</td><td>學生喜歡嗎？好用嗎？</td><td>SUS、EGameFlow、TAM、ARCS 滿足構面</td></tr>
+ <tr><td>2 學習 Learning</td><td>知識與技能有沒有進步？</td><td>前後測測驗、Bloom 自評、自我效能</td></tr>
+ <tr><td>3 行為 Behavior</td><td>學生後續有沒有運用？</td><td>課堂觀察、後續作業、延宕後測（隔 2–4 週）</td></tr>
+ <tr><td>4 結果 Results</td><td>班級或學校有什麼改變？</td><td>段考成績趨勢、學習參與度</td></tr></tbody></table></div><h3>反思</h3>`};
+
+$('#steps').innerHTML=STEPS.map((s,i)=>`<section class="step band" id="${s.id}"><div class="wrap">
+ <div class="sh"><div class="num">${i+1}</div><h2>${s.title}</h2></div><p class="lead">${s.lead}</p>
+ ${s.custom?custom[s.custom]():''}${fieldHTML(s)}
+ <ul class="checks">${s.checks.map((c,j)=>`<li><label><input type="checkbox" data-c="${s.id}-${j}" ${state.c[s.id+'-'+j]?'checked':''}><span>${c}</span></label></li>`).join('')}</ul>
+ ${s.prompts.map((p,j)=>`<div class="prompt"><div class="ph"><span>AI 提示詞：${p[0]}</span><button data-copy="${s.id}-${j}">複製</button></div><pre id="p-${s.id}-${j}"></pre></div>`).join('')}
+ <div class="pager">${i?`<a class="btn" href="#${STEPS[i-1].id}">← 上一關：${STEPS[i-1].short}</a>`:'<span></span>'}<a class="btn pri" href="#${i<STEPS.length-1?STEPS[i+1].id:'finish'}">${i<STEPS.length-1?'下一關：'+STEPS[i+1].short+' →':'前往匯出 →'}</a></div>
+</div></section>`).join('');
+$('#tabs').innerHTML=STEPS.map((s,i)=>`<a href="#${s.id}" id="t-${s.id}">${i+1} ${s.short}</a>`).join('')+'<a href="#finish">匯出／列印</a>';
+
+const promptText=(sid,j)=>STEPS.find(s=>s.id===sid).prompts[j][1]().replace(/⟦([^⟧]*)⟧/g,'【$1】');
+const renderPrompts=()=>STEPS.forEach(s=>s.prompts.forEach((p,j)=>{$('#p-'+s.id+'-'+j).innerHTML=esc(p[1]()).replace(/⟦([^⟧]*)⟧/g,'<mark>【$1】</mark>')}));
+const renderGames=()=>{const box=$('#gBox');const pick=state.f.gametype;const pickSup=pick?superOf((GAMES.find(g=>g[1]===pick)||[])[0]):null;
+ if(gSuper===null){box.innerHTML=`<div class="supers">${SUPER.map((x,i)=>{const list=GAMES.filter(g=>x[3].includes(g[0]));return `<button class="super${pickSup===x?' has':''}" data-sup="${i}" style="--c:${x[2]}"><span class="n">${list.length} 種</span><b>${x[0]}</b><span>${x[1]}</span><span>例：${list.slice(0,3).map(g=>g[1].split('（')[0]).join('、')}</span></button>`}).join('')}</div>`;}
+ else{const x=SUPER[gSuper];const subs=['全部',...x[3]];box.innerHTML=`<div class="crumb"><button data-sup="back">← 全部大類</button><b style="color:${x[2]}">${x[0]}</b></div><div class="chips">${subs.map(c=>`<button aria-pressed="${c===gCat}" data-gc="${c}">${c}</button>`).join('')}</div><div class="cards">${GAMES.filter(g=>x[3].includes(g[0])&&(gCat==='全部'||g[0]===gCat)).map(g=>`<button class="card" data-g="${esc(g[1])}" aria-pressed="${pick===g[1]}"><b>${g[1]}</b><span>${g[2]}</span><span class="stars">${'★'.repeat(g[3])}</span></button>`).join('')}</div>`;}
+ $('#gPick').textContent=pick?(pickSup?pickSup[0]+' › ':'')+pick:'尚未選擇';};
+const renderStyles=()=>{$('#sChips').innerHTML=CAT_S.map(c=>`<button aria-pressed="${c===sCat}" data-sc="${c}">${c}</button>`).join('');$('#sCards').innerHTML=STYLES.filter(g=>sCat==='全部'||g[0]===sCat).map(g=>`<button class="card" data-s="${esc(g[1])}" data-kw="${esc(g[2])}" aria-pressed="${state.f.style===g[1]}"><b>${g[1]}</b><code>${g[2]}</code><span>${g[3]}</span></button>`).join('');$('#sPick').textContent=state.f.style||'尚未選擇';};
+let iCat='all';
+const catOf=id=>CATS.find(c=>c[0]===id);
+const refBlock=(t,arr,key)=>arr.length?`<div class="refgrp"><div class="refh"><b>${t}</b></div>${arr.map((r,k)=>`<div class="ref"><p>${esc(r).replace(/(https:\/\/doi\.org\/\S+|https:\/\/\S+)/,'<a href="$1">$1</a>')}${/doi\.org/.test(r)?'':' <span class="nodoi">（書籍或早期文獻，無 DOI）</span>'}</p><button class="mini" data-cite="${key}-${k}">複製</button></div>`).join('')}</div>`:'';
+const renderInst=()=>{const sel=INST.filter(i=>state.sv.includes(i.id));
+ $('#catBar').innerHTML=`<button class="cat${iCat==='all'?' on':''}" data-ic="all">全部 <span>${INST.length}</span></button>`+CATS.map(([id,n,c])=>`<button class="cat${iCat===id?' on':''}" data-ic="${id}" style="--c:${c}">${n} <span>${INST.filter(i=>i.cat===id).length}</span></button>`).join('');
+ $('#iCards').innerHTML=INST.filter(i=>iCat==='all'||i.cat===iCat).map(I=>{const c=catOf(I.cat),on=state.sv.includes(I.id);return `<div class="icard${on?' on':''}${inst===I.id?' view':''}" style="--c:${c[2]}"><span class="tag">${c[1]}</span><b>${I.name}</b><p>${I.purpose}</p><div class="badges"><span>${I.who}</span><span>${I.when}</span><span>${I.items.length} 題示例</span></div><div class="row"><button class="${on?'':'pri'}" data-add="${I.id}">${on?'✓ 已加入':'加入問卷'}</button><button data-i="${I.id}">題目與文獻</button></div></div>`}).join('');
+ const n=sel.reduce((a,i)=>a+i.items.length,0);
+ $('#selBar').innerHTML=sel.length?`<div><b>已選 ${sel.length} 個量表、共 ${n} 題</b><div class="chips">${sel.map(i=>`<button data-add="${i.id}" style="--c:${catOf(i.cat)[2]}" class="selchip">${cite(i)} ✕</button>`).join('')}</div></div><div class="row"><button class="pri" id="copySurvey">複製問卷（中英對照）</button><button id="copyRefs">複製所選文獻（APA）</button></div>`:'<b>尚未選擇量表</b>：從上方卡片按「加入問卷」。';
+ const I=INST.find(i=>i.id===inst);if(!I){$('#instBody').innerHTML='';return;}const c=catOf(I.cat);
+ $('#instBody').innerHTML=`<div class="detail" style="--c:${c[2]}"><div class="dh"><span class="tag">${c[1]}</span><h3>${I.name}</h3><p>填答者：${I.who}｜施測時機：${I.when}｜計分：${I.scale}</p></div>
+ <div class="scroll"><table class="stack"><thead><tr><th>構面</th><th>題目（中文）</th><th>Item (English)</th></tr></thead><tbody>${I.items.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td class="en">${r[2]}</td></tr>`).join('')}</tbody></table></div>
+ <p class="note">${I.id==='sus'?'SUS 為原題，可免費使用並引用來源。':'以上為依該量表構面改編的示例題；正式研究請取得原始量表或已發表的中文版。'}</p>
+ ${refBlock('原始文獻',I.orig,I.id+'-o')}${refBlock('近期驗證／回顧文獻',I.recent,I.id+'-r')}
+ <div class="row"><button data-allcite="${I.id}">複製本量表全部文獻</button></div></div>`;};
+
+let page='s1';
+const show=()=>{const h=location.hash.slice(1);page=(STEPS.some(s=>s.id===h)||h==='finish')?h:'s1';document.querySelectorAll('section.step,#finish').forEach(x=>x.classList.toggle('cur',x.id===page));document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('cur',a.getAttribute('href')==='#'+page));const t=$('#t-'+page)||document.querySelector('nav a[href="#finish"]');t&&t.scrollIntoView&&t.scrollIntoView({block:'nearest',inline:'center'});drawMap();};
+const done=s=>s.checks.every((c,j)=>state.c[s.id+'-'+j]);
+const frac=s=>s.checks.filter((c,j)=>state.c[s.id+'-'+j]).length/s.checks.length;
+const svg=$('#mapSvg');
+const drawMap=()=>{const W=svg.clientWidth,H=svg.clientHeight;if(!W)return;const N=STEPS.length,cols=W<560?4:N,rows=Math.ceil(N/cols),mx=36,my=34,gx=(W-2*mx)/(cols-1),gy=rows>1?(H-2*my-20)/(rows-1):0;
+ const pts=STEPS.map((s,i)=>{const r=Math.floor(i/cols),c=r%2?cols-1-i%cols:i%cols;return[mx+c*gx,(rows>1?my+r*gy:H/2-10+(i%2?-22:22))]});
+ let d='M'+pts.map(p=>p.join(' ')).join(' L');const cur=STEPS.findIndex(s=>!done(s));
+ svg.innerHTML=`<path d="${d}" fill="none" stroke="var(--path)" stroke-width="6" stroke-dasharray="2 12" stroke-linecap="round" opacity=".55"/>`+pts.map((p,i)=>{const s=STEPS[i],f=frac(s),R=21,C=2*Math.PI*(R+5);const ok=f===1;
+ return `<g class="node${STEPS[i].id===page?' here':''}" tabindex="0" role="link" aria-label="第 ${i+1} 關 ${s.short}" data-go="${s.id}" transform="translate(${p[0]},${p[1]})"><ellipse cx="0" cy="${R+3}" rx="${R}" ry="5" fill="#000" opacity=".12"/>
+ <circle class="o" r="${R}" fill="${ok?'var(--coral)':'var(--bg)'}" stroke="var(--path)" stroke-width="2.5"/>
+ <circle r="${R+5}" fill="none" stroke="var(--coral)" stroke-width="4" stroke-dasharray="${C*f} ${C}" transform="rotate(-90)" opacity="${f>0&&!ok?1:0}"/>
+ <text text-anchor="middle" dy="7" style="font:800 20px 'Baloo 2',sans-serif;fill:${ok?'#fff':'var(--ink)'}">${ok?'✓':i+1}</text>
+ <text text-anchor="middle" y="${R+24}">${s.short}</text>
+ ${i===cur?`<g transform="translate(0,${-R-16})"><path d="M-9 0 L9 0 L0 10Z" fill="var(--coral)"/><circle cy="-8" r="10" fill="var(--coral)"/><circle cy="-9" r="3.5" fill="#fff"/></g>`:''}</g>`}).join('');};
+const mapObs=new ResizeObserver(drawMap);mapObs.observe(svg);
+const progress=()=>{const n=STEPS.filter(done).length,tot=STEPS.reduce((a,s)=>a+s.checks.length,0),got=Object.values(state.c).filter(Boolean).length;
+ $('#pct').textContent=Math.round(got/tot*100)+'%';$('#cleared').textContent=`已過 ${n} / ${STEPS.length} 關，勾選 ${got} / ${tot} 項`;
+ STEPS.forEach(s=>{$('#t-'+s.id).classList.toggle('done',done(s));$('#'+s.id).classList.toggle('ok',done(s));});drawMap();};
+
+let tt;const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),1600);};
+const copy=async txt=>{try{await navigator.clipboard.writeText(txt);toast('已複製');}catch(e){const a=document.createElement('textarea');a.value=txt;document.body.appendChild(a);a.select();let ok=false;try{ok=document.execCommand('copy')}catch(_){}a.remove();toast(ok?'已複製':'無法複製，請手動選取文字');}};
+const refsOf=I=>[...I.orig,...I.recent];
+const surveyText=()=>INST.filter(i=>state.sv.includes(i.id)).map(I=>`【${I.name}】\n計分：${I.scale}\n`+I.items.map((r,k)=>`${k+1}. ${r[1]}\n   ${r[2]}`).join('\n')).join('\n\n');
+const allText=()=>{let o=`# AI 教育遊戲開發規劃\n完成度：${$('#pct').textContent}\n`;STEPS.forEach((s,i)=>{o+=`\n## ${i+1}. ${s.title}\n`;(s.fields||[]).forEach(([k,l])=>{if(state.f[k])o+=`- ${l}：${state.f[k]}\n`});
+ if(s.id==='s2')o+=`- 遊戲類型：${state.f.gametype||'未選'}\n`;if(s.id==='s4')o+=`- 後台：${state.f.storage||'未選'}\n`;if(s.id==='s5')o+=`- 問卷量表：${state.sv.length?svNames():'未選'}\n`;if(s.id==='s6')o+=`- 主風格：${state.f.style||'未選'}\n`;if(s.id==='s8')o+=`- 平台：${state.f.platform||'未選'}\n`;
+ s.checks.forEach((c,j)=>o+=`- [${state.c[s.id+'-'+j]?'x':' '}] ${c}\n`)});if(state.sv.length)o+=`\n## 問卷題目\n${surveyText()}\n\n## 參考文獻（APA 7）\n${selRefs().map(r=>'- '+r).join('\n')}\n`;return o;};
+const selRefs=()=>[...new Set(INST.filter(i=>state.sv.includes(i.id)).flatMap(refsOf))].sort();
+const stamp=()=>{const d=new Date();const z=n=>String(n).padStart(2,'0');return `${d.getFullYear()}${z(d.getMonth()+1)}${z(d.getDate())}`;};
+const fileBase=()=>'AI教育遊戲規劃'+(state.f.unit?'_'+state.f.unit.replace(/[\\/:*?"<>|\s]+/g,''):'')+'_'+stamp();
+const dl=(name,text,type)=>{try{const u=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(u);a.remove();},1500);toast('已開始下載');}catch(e){toast('無法下載，請改用「複製文字」');}};
+const ph=x=>x?esc(x).replace(/\n/g,'<br>'):'';
+const printHTML=()=>{const d=new Date();let h=`<h1>AI 教育遊戲開發規劃學習單</h1><p class="pmeta">列印日期：${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}　完成度：${$('#pct').textContent}　姓名／組別：＿＿＿＿＿＿＿＿＿＿</p>`;
+ STEPS.forEach((s,i)=>{h+=`<section><h2>${i+1}. ${s.title}</h2>`;const rows=[...(s.fields||[]).map(([k,l])=>[l,state.f[k]])];
+  if(s.id==='s2')rows.unshift(['遊戲類型',state.f.gametype?((superOf((GAMES.find(g=>g[1]===state.f.gametype)||[])[0])||[''])[0]+' › '+state.f.gametype):'']);
+  if(s.id==='s4')rows.push(['後台儲存方式',state.f.storage]);
+  if(s.id==='s5')rows.push(['選用量表',state.sv.length?svNames():'']);
+  if(s.id==='s6')rows.unshift(['主風格',state.f.style]);
+  if(s.id==='s8')rows.unshift(['發布平台',state.f.platform]);
+  if(rows.length)h+=`<table>${rows.map(([l,v])=>`<tr><th>${esc(l)}</th><td${v?'':' class="blank"'}>${ph(v)}</td></tr>`).join('')}</table>`;
+  h+=`<h3>檢核</h3><ul style="list-style:none;padding-left:0">${s.checks.map((c,j)=>`<li>${state.c[s.id+'-'+j]?'☑':'☐'} ${esc(c)}</li>`).join('')}</ul></section>`;});
+ const sel=INST.filter(i=>state.sv.includes(i.id));
+ if(sel.length){h+=`<section><h2>問卷題目（Likert 5 點：1 非常不同意 ～ 5 非常同意）</h2>`;sel.forEach(I=>{h+=`<h3>${esc(I.name)}</h3><table>${I.items.map((r,k)=>`<tr><th>${k+1}. ${esc(r[0])}</th><td>${esc(r[1])}<br><span style="color:#555">${esc(r[2])}</span></td></tr>`).join('')}</table>`});
+  h+=`<h2>參考文獻（APA 7）</h2>${selRefs().map(r=>`<p class="ref">${esc(r)}</p>`).join('')}</section>`;}
+ return h;};
+const doPrint=()=>{$('#printView').innerHTML=printHTML();try{window.print();}catch(e){toast('請用瀏覽器選單的「列印」');}};
+addEventListener('beforeprint',()=>{$('#printView').innerHTML=printHTML();});
+
+document.addEventListener('input',e=>{const k=e.target.dataset.k;if(k){state.f[k]=e.target.value;save();renderPrompts();}});
+document.addEventListener('change',e=>{const t=e.target;if(t.dataset.c){state.c[t.dataset.c]=t.checked;save();progress();}if(t.name==='storage'||t.name==='platform'){state.f[t.name]=t.value;save();renderPrompts();}});
+document.addEventListener('click',e=>{const b=e.target.closest('button,[data-go]');if(!b)return;const d=b.dataset;
+ if(d.go){location.hash=d.go;}
+ else if(d.copy){const [sid,j]=d.copy.split('-');copy(promptText(sid,+j));}
+ else if(d.sup){if(d.sup==='back'){gSuper=null;}else{gSuper=+d.sup;gCat='全部';}renderGames();}
+ else if(d.gc){gCat=d.gc;renderGames();}
+ else if(d.g){state.f.gametype=d.g;save();renderGames();renderPrompts();}
+ else if(d.sc){sCat=d.sc;renderStyles();}
+ else if(d.s){state.f.style=d.s;state.f.keywords=d.kw;$('#f-keywords').value=d.kw;save();renderStyles();renderPrompts();}
+ else if(d.i){inst=d.i;renderInst();$('#instBody').scrollIntoView({block:'start'});}
+ else if(d.ic){iCat=d.ic;renderInst();}
+ else if(d.cite){const [id,t,k]=d.cite.split('-');const I=INST.find(i=>i.id===id);copy((t==='o'?I.orig:I.recent)[+k]);}
+ else if(d.allcite){copy(refsOf(INST.find(i=>i.id===d.allcite)).join('\n'));}
+ else if(b.id==='copyRefs'){copy([...new Set(INST.filter(i=>state.sv.includes(i.id)).flatMap(refsOf))].sort().join('\n'));}
+ else if(d.add){const id=d.add;state.sv=state.sv.includes(id)?state.sv.filter(x=>x!==id):[...state.sv,id];save();renderInst();renderPrompts();}
+ else if(b.id==='copySurvey'){state.sv.length?copy(surveyText()):toast('請先加入至少一個量表');}
+ else if(b.id==='copyAll'){copy(allText());}
+ else if(b.id==='printBtn'){doPrint();}
+ else if(b.id==='dlMd'){dl(fileBase()+'.md',allText(),'text/markdown;charset=utf-8');}
+ else if(b.id==='dlJson'){dl(fileBase()+'.json',JSON.stringify({app:'AIgameplan',version:2,exported:new Date().toISOString(),state},null,2),'application/json');}
+ else if(b.id==='reset'){if(b.dataset.armed){state={f:{},c:{},sv:[]};save();location.reload();}else{b.dataset.armed='1';b.textContent='再按一次確認清除';setTimeout(()=>{delete b.dataset.armed;b.textContent='清除重來'},3000);}}});
+document.addEventListener('change',async e=>{if(e.target.id!=='importFile')return;const f=e.target.files[0];if(!f)return;try{const o=JSON.parse(await f.text());const st=o.state||o;if(!st||typeof st!=='object'||!('f' in st))throw 0;state={f:{},c:{},sv:[],...st};save();toast('已匯入備份');setTimeout(()=>location.reload(),600);}catch(err){toast('檔案格式不正確，請選擇本網站下載的備份檔');}e.target.value='';});
+document.addEventListener('keydown',e=>{const g=e.target.closest&&e.target.closest('[data-go]');if(g&&(e.key==='Enter'||e.key===' ')){e.preventDefault();location.hash=g.dataset.go;}});
+
+addEventListener('hashchange',()=>{show();scrollTo(0,0);});
+renderGames();renderStyles();renderInst();renderPrompts();progress();show();
+}
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<style>/* compact banner */html body header.band{padding-block:10px 4px}html body header .wrap{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:20px}html body header h1{font-size:clamp(20px,2.4vw,28px);margin:0}html body header .sub{display:none}html body header .hud{margin:0;gap:2px 14px;font-size:14px;justify-content:flex-end}html body header .big{font-size:24px}html body header .fig{grid-column:1/-1;height:130px;margin-top:14px}html body header .fig>svg{overflow:visible}@media(max-width:600px){html body header .wrap{grid-template-columns:minmax(0,1fr)}html body header .hud{justify-content:flex-start}html body header .fig{display:none}}</style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 教育遊戲任務地圖</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+/* VOICE everyday learning tool, playful but tidy
+   IDEA a game's level-select world map: each development step is a stage you clear
+   PICTURE winding path of 9 stages on a sunflower field; stages fill as checklists are ticked, a token marks where you are
+   COLOUR sunflower #ffcf3a band, ink #1d1b2e, coral #ff5a4e for done/accent, teal #137a7f support; night: plum band
+   TYPE Baloo 2 for numbers + Noto Sans TC
+   LAYOUT map band across the top, sticky stage tabs, one working column of stage cards, summary at the end; phone: map in 3 rows */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#14131c);--ink:light-dark(#1d1b2e,#f1eee6);--muted:light-dark(#5d5a6e,#b4afc2);--sun:light-dark(#ffcf3a,#2b2547);--bandink:light-dark(#1d1b2e,#fff3c4);--coral:light-dark(#e8473b,#ff7a6e);--teal:light-dark(#137a7f,#4fc4c4);--line:light-dark(#e6e2d6,#34314a);--panel:light-dark(#fbf8ef,#1d1b29);--field:light-dark(#ffffff,#121119);--code:light-dark(#1d1b2e,#0d0c13);--codeink:#f4f1e8;--path:light-dark(#1d1b2e,#fff3c4)}
+:root[data-theme=light]{color-scheme:light}
+:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html{scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Noto Sans TC",system-ui,sans-serif;overflow-x:clip}
+.band{padding-block:clamp(24px,4vw,52px);padding-inline:max(5vw,16px)}
+.wrap{max-width:1040px;margin:0 auto}
+header.band{background:var(--sun);color:var(--bandink);padding-bottom:12px}
+h1{font:900 clamp(30px,5vw,48px)/1.1 "Noto Sans TC",sans-serif;letter-spacing:-.02em;margin:0 0 6px;text-wrap:balance}
+.sub{margin:0;max-width:62ch;font-size:16px}
+.hud{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:baseline;margin-top:14px}
+.big{font:800 clamp(34px,6vw,56px)/1 "Baloo 2",sans-serif}
+.fig{position:relative;height:230px;margin-top:8px}
+.fig>svg{position:absolute;inset:0;width:100%;height:100%}
+.fig text{font:700 13px "Noto Sans TC",sans-serif;fill:var(--bandink)}
+.node{cursor:pointer}
+.node:focus-visible circle.o{stroke:var(--coral);stroke-width:5}
+.node.here circle.o{stroke-width:5}
+nav.tabs{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+nav .scroll{display:flex;gap:6px;overflow-x:auto;padding:8px max(5vw,16px);max-width:1140px;margin:0 auto}
+nav a{flex:none;text-decoration:none;color:var(--ink);font-size:14px;padding:8px 12px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}
+nav a.done{background:var(--coral);border-color:var(--coral);color:#fff}
+nav a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+section.step,#finish{display:none}
+section.step.cur,#finish.cur{display:block}
+.pager{display:flex;justify-content:space-between;gap:10px;margin-top:28px;padding-top:18px;border-top:1px solid var(--line)}
+nav a.cur{outline:2px solid var(--ink);outline-offset:1px;font-weight:700}
+.sh{display:flex;gap:14px;align-items:center;margin-bottom:6px}
+.num{flex:none;width:48px;height:48px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font:800 24px "Baloo 2",sans-serif}
+.step.ok .num{background:var(--coral);color:#fff}
+h2{font:900 clamp(24px,3.4vw,32px)/1.15 "Noto Sans TC",sans-serif;margin:0;letter-spacing:-.01em}
+h3{font-size:18px;margin:26px 0 10px}
+.lead{color:var(--muted);margin:4px 0 18px;max-width:70ch}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}
+label.f{display:flex;flex-direction:column;gap:4px;font-weight:700;font-size:15px}
+label.f.wide{grid-column:1/-1}
+label.f small{font-weight:400;color:var(--muted);font-size:13px}
+input[type=text],textarea,select{font:16px/1.5 inherit;font-family:inherit;color:var(--ink);background:var(--field);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;min-height:44px}
+textarea{min-height:72px;resize:vertical}
+.checks{list-style:none;padding:0;margin:16px 0 0;display:grid;gap:6px}
+.checks label{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:var(--panel);cursor:pointer}
+.checks input{width:22px;height:22px;flex:none;margin-top:2px;accent-color:var(--coral)}
+.checks input:checked+span{color:var(--muted);text-decoration:line-through}
+.prompt{margin-top:16px;border-radius:14px;overflow:hidden;border:1.5px solid var(--ink)}
+.ph{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 8px 8px 14px;background:var(--ink);color:var(--bg);font-weight:700;font-size:15px}
+pre{margin:0;padding:14px;background:var(--code);color:var(--codeink);font:14px/1.7 "Noto Sans TC",monospace;white-space:pre-wrap;overflow-wrap:anywhere;max-height:420px;overflow:auto}
+pre mark{background:#ffcf3a;color:#1d1b2e;border-radius:4px;padding:0 3px}
+button{font:700 15px "Noto Sans TC",sans-serif;min-height:44px;padding:8px 16px;border-radius:999px;border:1.5px solid var(--ink);background:var(--bg);color:var(--ink);cursor:pointer}
+button.pri,.btn.pri{background:var(--coral);border-color:var(--coral);color:#fff}
+.btn{display:inline-flex;align-items:center;min-height:44px;padding:8px 16px;border-radius:999px;border:1.5px solid var(--ink);color:var(--ink);text-decoration:none;font-weight:700;font-size:15px}
+.ph button{background:#ffcf3a;border-color:#ffcf3a;color:#1d1b2e;min-height:38px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 12px}
+.chips button{min-height:38px;padding:6px 12px;font-size:14px;font-weight:400}
+.chips button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;padding:2px}
+.supers{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin:10px 0}
+.super{text-align:left;display:flex;flex-direction:column;gap:4px;border-radius:16px;border:2px solid color-mix(in srgb,var(--c) 35%,var(--line));background:color-mix(in srgb,var(--c) 8%,var(--bg));padding:14px;font-weight:400}
+.super b{font-size:17px}
+.super .n{font:800 13px "Baloo 2",sans-serif;color:#fff;background:var(--c);border-radius:999px;padding:1px 9px;align-self:flex-start}
+.super span{font-size:13px;color:var(--muted)}
+.super.has{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c)}
+.crumb{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0}
+.crumb b{font-size:17px}
+.tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-top:14px}
+.tool{display:flex;flex-direction:column;gap:6px;padding:14px;border:1.5px solid var(--line);border-radius:14px;background:var(--panel)}
+.tool b{font-size:16px}
+.tool span{font-size:13px;color:var(--muted)}
+.tool button,.tool label.btnlike{align-self:flex-start;margin-top:auto}
+label.btnlike{display:inline-flex;align-items:center;min-height:44px;padding:8px 16px;border-radius:999px;border:1.5px solid var(--ink);font-weight:700;font-size:15px;cursor:pointer}
+label.btnlike input{position:absolute;width:1px;height:1px;opacity:0}
+#printView{display:none}
+@media print{
+ @page{size:A4;margin:14mm 14mm 16mm}
+ body{background:#fff;color:#000;font-size:11pt}
+ header,nav,main,#finish,footer,.toast{display:none!important}
+ #printView{display:block}
+ #printView h1{font-size:20pt;margin:0 0 2mm}
+ #printView .pmeta{font-size:9.5pt;color:#444;margin:0 0 6mm}
+ #printView h2{font-size:13.5pt;margin:6mm 0 2mm;padding-bottom:1mm;border-bottom:1.5pt solid #000;break-after:avoid}
+ #printView h3{font-size:11pt;margin:3mm 0 1mm;break-after:avoid}
+ #printView table{width:100%;border-collapse:collapse;margin:1mm 0 2mm;font-size:10pt}
+ #printView th,#printView td{border:0.6pt solid #888;padding:1.5mm 2mm;vertical-align:top;text-align:left}
+ #printView th{width:32%;background:#f2f2f2;color:#000;font-weight:700}
+ #printView td.blank{height:9mm}
+ #printView ul{margin:1mm 0;padding-left:5mm}
+ #printView li{margin:0.6mm 0;break-inside:avoid}
+ #printView .ref{font-size:9pt;padding-left:5mm;text-indent:-5mm;margin:0.8mm 0}
+ #printView section{break-inside:auto}
+ #printView tr{break-inside:avoid}
+}
+.card{text-align:left;border-radius:12px;border:1.5px solid var(--line);background:var(--panel);padding:10px 12px;font-weight:400;display:flex;flex-direction:column;gap:2px;min-height:0}
+.card b{font-size:15px}
+.card span{font-size:13px;color:var(--muted)}
+.card code{font-size:12px;color:var(--teal);overflow-wrap:anywhere}
+.card[aria-pressed=true]{border-color:var(--coral);box-shadow:inset 0 0 0 2px var(--coral)}
+.stars{color:var(--coral);letter-spacing:1px}
+.pick{margin:10px 0 0;font-weight:700}
+.pick em{font-style:normal;color:var(--coral)}
+.opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.opt{display:flex;gap:10px;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--panel);cursor:pointer}
+.opt input{accent-color:var(--coral);width:20px;height:20px;flex:none;margin-top:3px}
+.opt small{display:block;color:var(--muted);font-size:13px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line)}
+th{font-size:13px;color:var(--muted)}
+td.en{color:var(--muted)}
+.inst{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.inst button{font-size:14px;min-height:38px;padding:6px 12px;font-weight:400}
+.inst button.on{background:var(--ink);color:var(--bg)}
+.inst button.in::after{content:" ✓";color:var(--coral);font-weight:700}
+.catbar{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.cat{--c:var(--ink);border-color:var(--c);color:var(--c);font-size:15px}
+.cat span{font:800 13px "Baloo 2",sans-serif;opacity:.8}
+.cat.on{background:var(--c);color:#fff}
+.icards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.icard{border:2px solid color-mix(in srgb,var(--c) 30%,var(--line));border-radius:16px;padding:14px;background:color-mix(in srgb,var(--c) 6%,var(--bg));display:flex;flex-direction:column;gap:6px}
+.icard.on{border-color:var(--c);background:color-mix(in srgb,var(--c) 14%,var(--bg))}
+.icard.view{box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 40%,transparent)}
+.icard b{font-size:17px;line-height:1.3}
+.icard p{margin:0;font-size:14px;color:var(--muted)}
+.icard .row{margin-top:auto;padding-top:6px}
+.icard .row button{min-height:40px;font-size:14px;padding:6px 12px}
+.icard .pri{background:var(--c);border-color:var(--c)}
+.tag{align-self:flex-start;font-size:12px;font-weight:700;color:#fff;background:var(--c);border-radius:999px;padding:2px 10px}
+.badges{display:flex;flex-wrap:wrap;gap:4px}
+.badges span{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:1px 8px;background:var(--bg)}
+.selbar{position:sticky;bottom:0;z-index:4;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;margin:16px 0;padding:12px 14px;border-radius:14px;background:var(--ink);color:var(--bg)}
+.selbar .chips{margin:6px 0 0}
+.selchip{--c:#fff;min-height:34px!important;font-size:13px!important;padding:4px 10px!important;background:var(--c)!important;border-color:var(--c)!important;color:#fff!important}
+.selbar button{border-color:var(--bg);background:var(--bg);color:var(--ink)}
+.selbar button.pri{background:var(--coral);border-color:var(--coral);color:#fff}
+.detail{border:2px solid var(--c);border-radius:16px;padding:16px;margin-top:8px}
+.dh h3{margin:6px 0 4px}
+.dh p{margin:0 0 10px;font-size:14px;color:var(--muted)}
+.note{font-size:13px;color:var(--muted)}
+.refgrp{margin-top:14px}
+.refh{margin-bottom:6px}
+.ref{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;padding:10px 12px;border-radius:10px;background:var(--panel);margin-bottom:6px}
+.ref p{margin:0;font-size:14px;overflow-wrap:anywhere;padding-left:1.5em;text-indent:-1.5em}
+.ref a{color:var(--teal)}
 button.mini{flex:none;min-height:36px;padding:4px 12px;font-size:13px}
 .meta{background:var(--panel);border-radius:12px;padding:12px 14px;margin-bottom:10px;font-size:14px}
 .meta p{margin:2px 0}
