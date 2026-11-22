@@ -128,3 +128,21 @@ github還要放上我的開發prompt以及整個開發過程，以便我能用ch
 ```text
 教材必須是PPT樣式，每一頁用圖片與文字呈現內容。只是最後是網頁形式
 ```
+
+**Prompt 17**
+
+```text
+readme要加入 國立清華大學數理教育研究所 吳智鴻教授 以及加入copyright
+```
+
+**Prompt 18**
+
+```text
+參考文獻盡量都要找到doi
+```
+
+**Prompt 19**
+
+```text
+fix course.html
+```
