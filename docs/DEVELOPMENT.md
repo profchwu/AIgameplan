@@ -91,7 +91,8 @@
 
 ## 5. 已知限制與待辦
 
-- 技能類量表缺近期驗證文獻；MEEGA+ 2019 原始論文缺頁碼。
+- 技能類量表缺近期驗證文獻。
+- 下列文獻沒有 DOI（書籍、早期會議或報告）：Bloom (1956)、Brooke (1996)、Dave (1970)、Simpson (1972)、Harrow (1972)、IJsselsteijn et al. (2013)、Kirkpatrick & Kirkpatrick (2006)、Likert (1932)；Lynn (1986) 的 DOI 尚未查證，暫不列出。其餘文獻均已附 DOI。
 - 量表點數在 prompt 中固定寫 5 點，但部分量表原本為 7 點或 0–10 分。
 - 遊戲類型與視覺風格目前只能單選（尚無「主類型＋輔助類型」）。
 - 頁面缺少社群分享預覽（og:image、description）與網站小圖示。
