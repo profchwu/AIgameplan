@@ -1,5 +1,7 @@
 # AI 教育遊戲開發任務地圖
 
+**作者：吳智鴻 教授｜國立清華大學 數理教育研究所**
+
 互動式 checklist 學習單，帶老師與學生用 10 個關卡規劃一個 AI 教育遊戲。
 
 **網站：https://profchwu.github.io/AIgameplan/**
@@ -31,3 +33,13 @@
 - [docs/PROMPTS.md](docs/PROMPTS.md)：開發時下給 AI 的提示詞原文
 - [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)：開發時間軸、設計決定、程式架構與更新方式
 - [docs/CHATGPT-OPTIMIZE.md](docs/CHATGPT-OPTIMIZE.md)：交給 ChatGPT 繼續優化的提示詞範本
+
+## 作者與版權
+
+© 2026 吳智鴻（國立清華大學數理教育研究所）. All rights reserved.
+
+本網站、課程教材與開發紀錄之著作權屬作者所有。歡迎教師於非商業教學場合使用，請註明出處：
+
+> 吳智鴻（2026）。AI 教育遊戲開發任務地圖。國立清華大學數理教育研究所。https://profchwu.github.io/AIgameplan/
+
+商業使用、改作後公開散布或其他用途，請先取得作者同意。網站中問卷題目除 SUS 外為依各量表構面改編之示例，原始量表著作權屬原作者。
