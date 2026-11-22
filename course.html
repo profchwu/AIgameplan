@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>用 AI 開發教育遊戲規劃網站｜課程簡報</title>
+<meta name="description" content="網頁簡報教材：從一句提示詞到上線的 GitHub 網站，用 AI 開發「AI 教育遊戲開發任務地圖」的完整過程、提示詞技巧與課堂活動。國立清華大學數理教育研究所 吳智鴻教授。">
+<meta name="author" content="吳智鴻（國立清華大學數理教育研究所）">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@800&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+/* VOICE classroom slide deck, bright and friendly, one idea per slide
+   IDEA a 16:9 presentation: every slide pairs a drawn picture with a few lines of text
+   PICTURE per-slide SVG: chat bubbles, browser mock-ups, flows, loops, the level map
+   COLOUR sunflower #ffcf3a, ink #1d1b2e, coral #e8473b, teal #137a7f, phase colours orange, pink, purple
+   TYPE Noto Sans TC 900 titles + Baloo 2 numbers
+   LAYOUT fixed 1280x720 stage scaled to the window; text left, picture right; dividers full colour */
+:root{--sun:#ffcf3a;--ink:#1d1b2e;--coral:#e8473b;--teal:#137a7f;--org:#e8590c;--pink:#d6336c;--pur:#7048e8;--paper:#fffaf0;--muted:#5d5a6e;--line:#e6e2d6}
+*{box-sizing:border-box;min-width:0}
+html,body{height:100%;margin:0}
+body{background:#14131c;color:var(--ink);font:24px/1.55 "Noto Sans TC",system-ui,sans-serif;overflow:hidden}
+.deck{position:fixed;inset:0 0 56px 0}
+.slide{position:absolute;left:50%;top:50%;width:1280px;height:720px;margin:-360px 0 0 -640px;background:#fff;overflow:hidden;display:none;transform-origin:center center;border-radius:6px}
+.slide.cur{display:block}
+.slide .t{position:absolute;left:72px;top:64px;width:560px}
+.slide .pic{position:absolute;right:48px;top:56px;width:560px;height:600px}
+.slide .pic svg{width:100%;height:100%}
+.slide.wide .t{width:1136px}
+h1,h2{font-weight:900;letter-spacing:-.02em;margin:0 0 18px;line-height:1.15}
+h1{font-size:64px}
+h2{font-size:46px}
+.kicker{display:inline-block;font-size:18px;font-weight:700;color:#fff;background:var(--k,var(--teal));border-radius:999px;padding:4px 16px;margin-bottom:18px}
+p{margin:0 0 14px}
+ul,ol{margin:0;padding-left:1.1em}
+li{margin:0 0 10px}
+.muted{color:var(--muted)}
+.big{font:800 64px/1 "Baloo 2",sans-serif}
+.foot{position:absolute;left:72px;bottom:28px;right:72px;display:flex;justify-content:space-between;gap:20px;font-size:16px;color:var(--muted)}
+.slide.title .foot{color:#1d1b2e}
+.prompt{background:var(--ink);color:#f4f1e8;border-radius:18px;padding:18px 22px;font-size:21px;line-height:1.6;white-space:pre-wrap;position:relative}
+.prompt .copy{position:absolute;top:12px;right:12px;font:700 15px "Noto Sans TC",sans-serif;border:0;border-radius:999px;background:var(--sun);color:var(--ink);padding:6px 14px;cursor:pointer}
+.tip{border-left:6px solid var(--coral);background:var(--paper);padding:12px 18px;border-radius:0 14px 14px 0;font-size:21px}
+.act{border:3px dashed var(--teal);border-radius:18px;padding:16px 20px;font-size:21px}
+.act b{color:var(--teal)}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.card{background:var(--paper);border-radius:20px;padding:18px 20px;font-size:20px;line-height:1.5}
+.card b{display:block;font-size:23px;margin-bottom:4px}
+.card .n{font:800 34px/1 "Baloo 2",sans-serif;color:var(--c,var(--coral))}
+table{border-collapse:collapse;width:100%;font-size:19px}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:2px solid var(--line)}
+th{font-size:16px;color:var(--muted)}
+.slide.title{background:var(--sun)}
+.slide.div{color:#fff}
+.slide.div h1{font-size:84px}
+.slide.div .num{font:800 220px/1 "Baloo 2",sans-serif;opacity:.25;position:absolute;right:60px;bottom:10px}
+.bar{position:fixed;left:0;right:0;bottom:0;height:56px;display:flex;align-items:center;gap:10px;padding:0 14px;background:#1d1b2e;color:#f1eee6;font-size:15px}
+.bar button{font:700 15px "Noto Sans TC",sans-serif;min-height:40px;min-width:44px;padding:4px 14px;border-radius:999px;border:1.5px solid #f1eee6;background:transparent;color:#f1eee6;cursor:pointer}
+.bar button.pri{background:var(--sun);border-color:var(--sun);color:var(--ink)}
+.bar button:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.bar .count{font:800 18px "Baloo 2",sans-serif;min-width:72px;text-align:center}
+.bar .sp{flex:1}
+.bar .prog{position:absolute;left:0;top:0;height:4px;background:var(--sun);transition:width .25s}
+.bar a{color:#f1eee6}
+body.ov{overflow:auto}
+body.ov .deck{position:static;display:grid;grid-template-columns:repeat(auto-fill,minmax(256px,1fr));gap:16px;padding:16px 16px 72px}
+body.ov .slide{display:block;position:absolute;left:0;top:0;margin:0;transform:scale(.2)!important;transform-origin:0 0;cursor:pointer}
+body.ov .wrapov{width:256px;height:144px;overflow:hidden;border-radius:6px;position:relative;outline:4px solid transparent}
+body.ov .wrapov.cur{outline-color:var(--sun)}
+.toast{position:fixed;left:50%;bottom:72px;transform:translateX(-50%);background:var(--sun);color:var(--ink);padding:9px 18px;border-radius:999px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.on{opacity:1}
+@media(max-width:700px){.bar{gap:6px;padding:0 8px}.bar button{padding:4px 10px;font-size:14px}.bar a,#fsBtn{display:none}}
+@media print{
+ @page{size:1280px 720px;margin:0}
+ body{background:#fff;overflow:visible}
+ .deck{position:static;display:block}
+ .bar,.toast,.copy{display:none!important}
+ .slide{display:block!important;position:relative;left:0;top:0;margin:0;transform:none!important;border-radius:0;break-after:page;page-break-after:always}
+ *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+@media(prefers-reduced-motion:reduce){.bar .prog,.toast{transition:none}}
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+<section class="slide title" data-title="封面">
+ <div class="t" style="top:110px;width:600px">
+  <span class="kicker" style="--k:var(--ink)">課程簡報｜4 節課</span>
+  <h1>用 AI 開發一個<br>教育遊戲規劃網站</h1>
+  <p style="font-size:26px">從一句「幫我規劃學習單」<br>到上線的 GitHub 網站</p>
+  <p style="font-size:22px;margin-top:30px"><b>吳智鴻 教授</b><br>國立清華大學 數理教育研究所</p>
+ </div>
+ <div class="pic" style="top:70px">
+  <svg viewBox="0 0 560 600" role="img" aria-label="對話泡泡變成網站">
+   <ellipse cx="300" cy="560" rx="240" ry="22" fill="#1d1b2e" opacity=".12"/>
+   <g transform="translate(20,40)"><rect width="300" height="120" rx="26" fill="#fff"/><path d="M40 118 L30 160 L80 118Z" fill="#fff"/><rect x="28" y="30" width="200" height="16" rx="8" fill="#1d1b2e" opacity=".8"/><rect x="28" y="62" width="240" height="14" rx="7" fill="#1d1b2e" opacity=".35"/><rect x="28" y="88" width="160" height="14" rx="7" fill="#1d1b2e" opacity=".35"/></g>
+   <path d="M330 120 C420 120 440 170 430 220" fill="none" stroke="#1d1b2e" stroke-width="6" stroke-dasharray="2 14" stroke-linecap="round"/>
+   <path d="M418 214 L432 236 L446 212" fill="none" stroke="#1d1b2e" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+   <g transform="translate(70,250)"><rect width="460" height="290" rx="18" fill="#1d1b2e"/><rect x="8" y="34" width="444" height="248" rx="10" fill="#fff"/><circle cx="24" cy="17" r="6" fill="#e8473b"/><circle cx="44" cy="17" r="6" fill="#ffcf3a"/><circle cx="64" cy="17" r="6" fill="#4fc4c4"/>
+    <rect x="8" y="34" width="444" height="70" fill="#ffcf3a"/><rect x="26" y="50" width="200" height="16" rx="8" fill="#1d1b2e"/><rect x="26" y="74" width="120" height="10" rx="5" fill="#1d1b2e" opacity=".4"/>
+    <path d="M40 150 L95 175 L150 150 L205 175 L260 150 L315 175 L370 150 L420 175" fill="none" stroke="#1d1b2e" stroke-width="4" stroke-dasharray="2 10" stroke-linecap="round" opacity=".5"/>
+    <g fill="#e8473b"><circle cx="40" cy="150" r="14"/><circle cx="95" cy="175" r="14"/><circle cx="150" cy="150" r="14"/></g><g fill="#fff" stroke="#1d1b2e" stroke-width="3"><circle cx="205" cy="175" r="14"/><circle cx="260" cy="150" r="14"/><circle cx="315" cy="175" r="14"/><circle cx="370" cy="150" r="14"/><circle cx="420" cy="175" r="14"/></g>
+    <g fill="#fbf8ef" stroke="#e6e2d6" stroke-width="2"><rect x="26" y="210" width="125" height="56" rx="10"/><rect x="167" y="210" width="125" height="56" rx="10"/><rect x="308" y="210" width="125" height="56" rx="10"/></g></g>
+  </svg>
+ </div>
+ <div class="foot"><span>© 2026 吳智鴻．國立清華大學數理教育研究所</span><span>profchwu.github.io/AIgameplan</span></div>
+</section>
+
+<section class="slide" data-title="今天的成品">
+ <div class="t">
+  <span class="kicker">今天的成品</span>
+  <h2>AI 教育遊戲<br>開發任務地圖</h2>
+  <ul><li><b>10 個關卡</b>，一關一頁</li><li><b>92 種</b>遊戲類型、<b>44 種</b>視覺風格</li><li><b>12 個</b>學術量表，附 APA 文獻</li><li>提示詞自動帶入、一鍵複製</li><li>列印、下載、備份</li></ul>
+  <p class="muted" style="margin-top:18px;font-size:20px">profchwu.github.io/AIgameplan</p>
+ </div>
+ <div class="pic">
+  <svg viewBox="0 0 560 600" role="img" aria-label="成品網站畫面示意">
+   <rect x="10" y="40" width="540" height="520" rx="20" fill="#1d1b2e"/><rect x="20" y="78" width="520" height="472" rx="10" fill="#fff"/>
+   <circle cx="36" cy="59" r="7" fill="#e8473b"/><circle cx="58" cy="59" r="7" fill="#ffcf3a"/><circle cx="80" cy="59" r="7" fill="#4fc4c4"/><rect x="110" y="50" width="300" height="18" rx="9" fill="#fff" opacity=".2"/>
+   <rect x="20" y="78" width="520" height="130" fill="#ffcf3a"/><text x="40" y="114" font-size="24" font-weight="900" fill="#1d1b2e">AI 教育遊戲開發任務地圖</text><text x="430" y="114" font-size="26" font-weight="800" fill="#1d1b2e" font-family="Baloo 2">40%</text>
+   <path d="M50 170 L100 150 L150 170 L200 150 L250 170 L300 150 L350 170 L400 150 L450 170 L500 150" fill="none" stroke="#1d1b2e" stroke-width="3" stroke-dasharray="2 8" opacity=".4"/>
+   <g fill="#e8473b"><circle cx="50" cy="170" r="12"/><circle cx="100" cy="150" r="12"/><circle cx="150" cy="170" r="12"/><circle cx="200" cy="150" r="12"/></g><g fill="#fff" stroke="#1d1b2e" stroke-width="2.5"><circle cx="250" cy="170" r="12"/><circle cx="300" cy="150" r="12"/><circle cx="350" cy="170" r="12"/><circle cx="400" cy="150" r="12"/><circle cx="450" cy="170" r="12"/><circle cx="500" cy="150" r="12"/></g>
+   <g font-size="13" fill="#1d1b2e"><rect x="36" y="224" width="80" height="28" rx="14" fill="none" stroke="#1d1b2e" stroke-width="2"/><text x="48" y="243">1 單元</text><rect x="124" y="224" width="96" height="28" rx="14" fill="#1d1b2e"/><text x="134" y="243" fill="#fff">2 遊戲類型</text><rect x="228" y="224" width="70" height="28" rx="14" fill="none" stroke="#e6e2d6" stroke-width="2"/><text x="240" y="243">3 玩法</text></g>
+   <circle cx="56" cy="290" r="20" fill="#1d1b2e"/><text x="50" y="298" fill="#fff" font-size="22" font-weight="800" font-family="Baloo 2">2</text><text x="88" y="298" font-size="24" font-weight="900">選擇遊戲類型</text>
+   <g><rect x="36" y="326" width="150" height="96" rx="14" fill="#e7f4f4" stroke="#137a7f" stroke-width="2"/><text x="50" y="356" font-size="16" font-weight="700">教學互動型</text><rect x="50" y="372" width="90" height="10" rx="5" fill="#137a7f" opacity=".4"/>
+    <rect x="200" y="326" width="150" height="96" rx="14" fill="#fdeee5" stroke="#e8590c" stroke-width="2"/><text x="214" y="356" font-size="16" font-weight="700">動作反應型</text><rect x="214" y="372" width="90" height="10" rx="5" fill="#e8590c" opacity=".4"/>
+    <rect x="364" y="326" width="150" height="96" rx="14" fill="#fbe7ee" stroke="#d6336c" stroke-width="2"/><text x="378" y="356" font-size="16" font-weight="700">角色敘事型</text><rect x="378" y="372" width="90" height="10" rx="5" fill="#d6336c" opacity=".4"/></g>
+   <rect x="36" y="440" width="478" height="90" rx="14" fill="#1d1b2e"/><rect x="52" y="452" width="160" height="12" rx="6" fill="#fff" opacity=".8"/><rect x="430" y="450" width="70" height="26" rx="13" fill="#ffcf3a"/><text x="447" y="468" font-size="14" font-weight="700">複製</text><rect x="52" y="484" width="400" height="10" rx="5" fill="#fff" opacity=".35"/><rect x="52" y="504" width="320" height="10" rx="5" fill="#fff" opacity=".35"/>
+  </svg>
+ </div>
+</section>
+
+<section class="slide" data-title="學習目標">
+ <div class="t">
+  <span class="kicker">學習目標</span>
+  <h2>上完這 4 節課，<br>你能夠…</h2>
+  <ul><li>把模糊的想法拆成<b>具體的提示詞</b></li><li>用「檢查 → 回饋 → 修正」和 AI <b>迭代</b></li><li><b>查證</b> AI 給的文獻與事實</li><li>把成果<b>部署到 GitHub Pages</b> 分享</li></ul>
+  <p class="muted" style="margin-top:16px;font-size:20px">不需要會寫程式，只要會用 AI 對話工具和 GitHub 帳號。</p>
+ </div>
+ <div class="pic">
+  <svg viewBox="0 0 560 600" role="img" aria-label="四個目標圍繞中心">
+   <circle cx="280" cy="300" r="210" fill="#fffaf0"/><circle cx="280" cy="300" r="140" fill="#ffcf3a"/><circle cx="280" cy="300" r="76" fill="#fff"/><circle cx="280" cy="300" r="30" fill="#e8473b"/>
+   <path d="M480 110 L300 290" stroke="#1d1b2e" stroke-width="8" stroke-linecap="round"/><path d="M480 110 L505 92 M480 110 L462 86 M480 110 L512 120" stroke="#1d1b2e" stroke-width="6" stroke-linecap="round"/>
+   <g font-size="22" font-weight="900" fill="#fff" text-anchor="middle"><circle cx="110" cy="110" r="52" fill="#137a7f"/><text x="110" y="118">拆解</text><circle cx="90" cy="460" r="52" fill="#e8590c"/><text x="90" y="468">迭代</text><circle cx="470" cy="480" r="52" fill="#d6336c"/><text x="470" y="488">查證</text><circle cx="500" cy="290" r="52" fill="#7048e8"/><text x="500" y="298">部署</text></g>
+  </svg>
+ </div>
+</section>
+
+<section class="slide wide" data-title="四節課安排">
+ <div class="t">
+  <span class="kicker">課程安排</span>
+  <h2>四節課，每節 50 分鐘</h2>
+  <svg viewBox="0 0 1136 150" style="width:100%;height:150px;margin:6px 0 18px" role="img" aria-label="四節課路線">
+   <path d="M70 75 H1066" stroke="#1d1b2e" stroke-width="6" stroke-dasharray="2 16" stroke-linecap="round" opacity=".35"/>
+   <g font-family="Baloo 2" font-weight="800" font-size="40" fill="#fff" text-anchor="middle"><circle cx="140" cy="75" r="56" fill="#137a7f"/><text x="140" y="90">1</text><circle cx="425" cy="75" r="56" fill="#e8590c"/><text x="425" y="90">2</text><circle cx="710" cy="75" r="56" fill="#d6336c"/><text x="710" y="90">3</text><circle cx="995" cy="75" r="56" fill="#7048e8"/><text x="995" y="90">4</text></g>
+  </svg>
+  <div class="grid4">
+   <div class="card"><b>從需求到學習單</b>示範 Prompt 1–3<br>改寫成自己的主題</div>
+   <div class="card"><b>做成互動網站</b>請 AI 做成單一 HTML<br>試用並列出問題</div>
+   <div class="card"><b>部署與迭代</b>上傳 GitHub Pages<br>依回饋修改兩輪</div>
+   <div class="card"><b>查證與發表</b>核對文獻、同儕互評<br>整理開發紀錄</div>
+  </div>
+ </div>
+</section>
+
+<section class="slide wide" data-title="開發全貌">
+ <div class="t">
+  <span class="kicker">開發全貌</span>
+  <h2>16 則提示詞，4 個階段</h2>
+  <svg viewBox="0 0 1136 300" style="width:100%;height:300px" role="img" aria-label="16 則提示詞分四階段的路線圖">
+   <path d="M40 150 C140 60 220 240 320 150 S520 60 620 150 S820 240 920 150 S1060 90 1100 150" fill="none" stroke="#1d1b2e" stroke-width="10" stroke-linecap="round" opacity=".12"/>
+   <g font-family="Baloo 2" font-size="20" font-weight="800" fill="#fff" text-anchor="middle">
+    <g fill="#137a7f"><circle cx="60" cy="132" r="22"/><circle cx="130" cy="112" r="22"/><circle cx="200" cy="150" r="22"/></g>
+    <g fill="#e8590c"><circle cx="290" cy="168" r="22"/></g>
+    <g fill="#d6336c"><circle cx="380" cy="124" r="22"/><circle cx="450" cy="100" r="22"/><circle cx="800" cy="196" r="22"/></g>
+    <g fill="#7048e8"><circle cx="530" cy="120" r="22"/><circle cx="600" cy="148" r="22"/><circle cx="660" cy="178" r="22"/><circle cx="720" cy="196" r="22"/><circle cx="760" cy="140" r="22"/><circle cx="870" cy="160" r="22"/><circle cx="940" cy="140" r="22"/><circle cx="1010" cy="118" r="22"/><circle cx="1080" cy="140" r="22"/></g>
+    <text x="60" y="139">1</text><text x="130" y="119">2</text><text x="200" y="157">3</text><text x="290" y="175">4</text><text x="380" y="131">5</text><text x="450" y="107">6</text><text x="530" y="127">7</text><text x="600" y="155">8</text><text x="660" y="185">9</text><text x="720" y="203">10</text><text x="760" y="147">11</text><text x="800" y="203">12</text><text x="870" y="167">13</text><text x="940" y="147">14</text><text x="1010" y="125">15</text><text x="1080" y="147">16</text>
+   </g>
+   <g font-size="22" font-weight="700"><rect x="40" y="250" width="18" height="18" rx="4" fill="#137a7f"/><text x="66" y="267">規劃學習單</text><rect x="300" y="250" width="18" height="18" rx="4" fill="#e8590c"/><text x="326" y="267">做成網站</text><rect x="540" y="250" width="18" height="18" rx="4" fill="#d6336c"/><text x="566" y="267">部署上線</text><rect x="780" y="250" width="18" height="18" rx="4" fill="#7048e8"/><text x="806" y="267">迭代優化</text></g>
+  </svg>
+  <p class="muted" style="font-size:21px">每一則提示詞都來自真實的開發過程，原文收錄在 GitHub 的 docs/PROMPTS.md。</p>
+ </div>
+</section>
+
+<section class="slide div" style="background:var(--teal)" data-title="階段一">
+ <div class="t" style="top:220px;width:900px"><span class="kicker" style="--k:#0d5559">階段一｜第 1 節</span><h1>規劃學習單</h1><p style="font-size:30px">先把需求講清楚</p></div>
+ <div class="num">1</div>
+</section>
+
+<section class="slide" data-title="Prompt 1 起點">
+ <div class="t">
+  <span class="kicker">Prompt 1｜起點</span>
+  <h2>只給 7 個步驟的骨架</h2>
+  <div class="prompt">規劃一個AI 教育遊戲開發的check list學習單。
+1. 選擇單元、對象
+2. 選擇遊戲類型
+3. 規劃玩法
+4. 規劃前後測評量/後台儲存
+5. 規劃遊戲主視覺風格
+6. 運用AI生成遊戲素材
+7. 規劃發布平台
+幫我規劃<button class="copy">複製</button></div>
+ </div>
+ <div class="pic">
+  <svg viewBox="0 0 560 600" role="img" aria-label="骨架變成學習單">
+   <g transform="translate(20,60)"><rect width="200" height="380" rx="16" fill="#fffaf0" stroke="#1d1b2e" stroke-width="3"/>
+    <rect x="24" y="30" width="120" height="14" rx="7" fill="#1d1b2e"/><g fill="#1d1b2e" opacity=".55"><rect x="24" y="76" width="150" height="10" rx="5"/><rect x="24" y="116" width="130" height="10" rx="5"/><rect x="24" y="156" width="150" height="10" rx="5"/><rect x="24" y="196" width="120" height="10" rx="5"/><rect x="24" y="236" width="150" height="10" rx="5"/><rect x="24" y="276" width="140" height="10" rx="5"/><rect x="24" y="316" width="130" height="10" rx="5"/></g></g>
+   <text x="120" y="480" text-anchor="middle" font-size="22" font-weight="700">骨架</text>
+   <path d="M240 250 H300" stroke="#e8473b" stroke-width="8" stroke-linecap="round"/><path d="M290 232 L312 250 L290 268" fill="none" stroke="#e8473b" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+   <g transform="translate(330,30)"><rect width="210" height="440" rx="16" fill="#fff" stroke="#1d1b2e" stroke-width="3"/>
+    <rect x="20" y="24" width="120" height="14" rx="7" fill="#1d1b2e"/>
+    <g fill="#fbf8ef" stroke="#e6e2d6" stroke-width="2"><rect x="20" y="54" width="170" height="44" rx="6"/><rect x="20" y="164" width="170" height="44" rx="6"/><rect x="20" y="274" width="170" height="44" rx="6"/></g>
+    <g fill="none" stroke="#137a7f" stroke-width="3"><rect x="22" y="110" width="16" height="16" rx="3"/><rect x="22" y="134" width="16" height="16" rx="3"/><rect x="22" y="220" width="16" height="16" rx="3"/><rect x="22" y="244" width="16" height="16" rx="3"/><rect x="22" y="330" width="16" height="16" rx="3"/><rect x="22" y="354" width="16" height="16" rx="3"/></g>
+    <path d="M25 118 l5 5 l9 -11 M25 142 l5 5 l9 -11" stroke="#137a7f" stroke-width="3" fill="none"/>
+    <g fill="#1d1b2e" opacity=".4"><rect x="48" y="113" width="120" height="10" rx="5"/><rect x="48" y="137" width="100" height="10" rx="5"/><rect x="48" y="223" width="120" height="10" rx="5"/><rect x="48" y="247" width="90" height="10" rx="5"/><rect x="48" y="333" width="120" height="10" rx="5"/><rect x="48" y="357" width="100" height="10" rx="5"/></g>
+    <rect x="20" y="390" width="170" height="30" rx="8" fill="#1d1b2e"/></g>
+   <text x="435" y="510" text-anchor="middle" font-size="22" font-weight="700">表格＋檢核＋提示詞</text>
+  </svg>
+ </div>
+</section>
+
+<section class="slide" data-title="Prompt 2–3 補強">
+ <div class="t">
+  <span class="kicker">Prompt 2–3｜補強</span>
+  <h2>請 AI 找不足，<br>再要求「列全」</h2>
+  <div class="prompt" style="font-size:19px">分析是否還有不足之處?
+遊戲類型要列出目前所有可用的遊戲類型、遊戲風格要列出所有的遊戲風格
+每一個步驟都要提供跟AI對話的prompt & 並且可以複製<button class="copy">複製</button></div>
+  <p style="margin-top:14px;font-size:21px">接著再要求加入<b>學術問卷</b>：Likert 量表、中英對照、引用來源。</p>
+ </div>
+ <div class="pic">
+  <svg viewBox="0 0 560 600" role="img" aria-label="放大鏡找出不足，清單變長">
+   <g transform="translate(40,60)"><rect width="230" height="300" rx="16" fill="#fffaf0" stroke="#1d1b2e" stroke-width="3"/><g fill="#1d1b2e" opacity=".45"><rect x="24" y="34" width="170" height="12" rx="6"/><rect x="24" y="74" width="150" height="12" rx="6"/><rect x="24" y="114" width="170" height="12" rx="6"/><rect x="24" y="154" width="120" height="12" rx="6"/></g><rect x="20" y="194" width="190" height="36" rx="8" fill="#e8473b" fill-opacity=".2" stroke="#e8473b" stroke-width="2" stroke-dasharray="6 6"/><rect x="20" y="244" width="190" height="36" rx="8" fill="#e8473b" fill-opacity=".2" stroke="#e8473b" stroke-width="2" stroke-dasharray="6 6"/></g>
+   <g transform="translate(220,190)"><circle r="70" fill="#fff" fill-opacity=".6" stroke="#1d1b2e" stroke-width="12"/><path d="M50 50 L120 120" stroke="#1d1b2e" stroke-width="22" stroke-linecap="round"/></g>
+   <g font-family="Baloo 2" font-weight="800" text-anchor="middle">
+    <g transform="translate(110,470)"><circle r="62" fill="#137a7f"/><text y="14" font-size="44" fill="#fff">52</text><text y="94" font-size="20" fill="#1d1b2e" font-family="Noto Sans TC">遊戲類型</text></g>
+    <g transform="translate(280,470)"><circle r="62" fill="#e8590c"/><text y="14" font-size="44" fill="#fff">44</text><text y="94" font-size="20" fill="#1d1b2e" font-family="Noto Sans TC">視覺風格</text></g>
+    <g transform="translate(450,470)"><circle r="62" fill="#d6336c"/><text y="14" font-size="44" fill="#fff">9</text><text y="94" font-size="20" fill="#1d1b2e" font-family="Noto Sans TC">學術量表</text></g>
+   </g>
+  </svg>
+ </div>
+</section>
+
+<section class="slide" data-title="觀念與活動 1">
+ <div class="t">
+  <span class="kicker">觀念</span>
+  <h2>先給骨架，<br>再請 AI 自我檢查</h2>
+  <div class="tip" style="margin-bottom:22px">列出步驟的提示詞，比「幫我做一份學習單」得到的結構清楚得多。</div>
+  <div class="act"><b>課堂活動 1（15 分鐘）</b><br>換成自己的主題（例：校外教學、科普短片），寫出 5–7 個步驟的骨架提示詞，再追加「請分析還有哪些不足」。比較前後差異。</div>
+ </div>
+ <div class="pic">
+  <svg viewBox="0 0 560 600" role="img" aria-label="籠統提示與骨架提示的結果比較">
+   <g font-size="22" font-weight="700" text-anchor="middle"><text x="140" y="70">「幫我做學習單」</text><text x="420" y="70">骨架提示詞</text></g>
+   <g transform="translate(50,100)"><rect width="180" height="400" rx="16" fill="#fff" stroke="#e6e2d6" stroke-width="3"/><path d="M30 60 Q90 30 150 70 T120 160 Q60 200 140 260 T60 360" fill="none" stroke="#5d5a6e" stroke-width="6" stroke-linecap="round" opacity=".4"/></g>
+   <g transform="translate(330,100)"><rect width="180" height="400" rx="16" fill="#fff" stroke="#137a7f" stroke-width="3"/>
+    <g fill="#137a7f"><rect x="20" y="24" width="140" height="44" rx="8"/><rect x="20" y="80" width="140" height="44" rx="8" opacity=".85"/><rect x="20" y="136" width="140" height="44" rx="8" opacity=".7"/><rect x="20" y="192" width="140" height="44" rx="8" opacity=".55"/><rect x="20" y="248" width="140" height="44" rx="8" opacity=".4"/><rect x="20" y="304" width="140" height="44" rx="8" opacity=".25"/></g></g>
+   <g transform="translate(420,535)"><circle r="26" fill="#137a7f"/><path d="M-11 0 l7 8 l15 -16" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round"/></g>
+   <g transform="translate(140,535)"><circle r="26" fill="#e6e2d6"/><text y="10" text-anchor="middle" font-size="28" font-weight="900" fill="#5d5a6e">?</text></g>
+  </svg>
+ </div>
+</section>
+
+<section class="slide div" style="background:var(--org)" data-title="階段二">
+ <div class="t" style="top:220px;width:900px"><span class="kicker" style="--k:#a63e06">階段二｜第 2 節</span><h1>做成互動網站</h1><p style="font-size:30px">一句話換一種形式</p></div>
+ <div class="num">2</div>
+</section>
+
+<section class="slide" data-title="Prompt 4 做成網站">
+ <div class="t">
+  <span class="kicker" style="--k:var(--org)">Prompt 4</span>
+  <h2>同樣的內容，<br>變成可以操作的網站</h2>
+  <div class="prompt" style="font-size:30px">做成互動網站<button class="copy">複製</button></div>
+  <div class="tip" style="margin-top:22px">說出「用途」比指定「技術」重要。AI 依「老師要能自己維護」選擇了最簡單的單一 HTML 檔。</div>
+ </div>
+ <div class="pic">
+  <svg viewBox="0 0 560 600" role="img" aria-label="文件轉成網站">
+   <g transform="translate(30,120) rotate(-6)"><rect width="200" height="270" rx="12" fill="#fffaf0" stroke="#1d1b2e" stroke-width="3"/><g fill="#1d1b2e" opacity=".4"><rect x="20" y="30" width="140" height="12" rx="6"/><rect x="20" y="62" width="160" height="10" rx="5"/><rect x="20" y="86" width="150" height="10" rx="5"/><rect x="20" y="110" width="160" height="10" rx="5"/><rect x="20" y="150" width="120" height="10" rx="5"/><rect x="20" y="174" width="160" height="10" rx="5"/><rect x="20" y="198" width="140" height="10" rx="5"/></g></g>
+   <g transform="translate(250,250)"><circle r="34" fill="#e8590c"/><path d="M-12 -14 L14 0 L-12 14Z" fill="#fff"/></g>
+   <g transform="translate(290,80)"><rect width="250" height="420" rx="26" fill="#1d1b2e"/><rect x="12" y="40" width="226" height="350" rx="8" fill="#fff"/><rect x="12" y="40" width="226" height="70" fill="#ffcf3a"/>
+    <g fill="#e8473b"><circle cx="40" cy="140" r="12"/><circle cx="80" cy="155" r="12"/></g><g fill="#fff" stroke="#1d1b2e" stroke-width="2.5"><circle cx="120" cy="140" r="12"/><circle cx="160" cy="155" r="12"/><circle cx="200" cy="140" r="12"/></g>
+    <g fill="none" stroke="#137a7f" stroke-width="3"><rect x="30" y="190" width="18" height="18" rx="4"/><rect x="30" y="222" width="18" height="18" rx="4"/></g><path d="M33 199 l5 5 l9 -10" stroke="#137a7f" stroke-width="3" fill="none"/>
+    <g fill="#1d1b2e" opacity=".4"><rect x="58" y="194" width="140" height="10" rx="5"/><rect x="58" y="226" width="120" height="10" rx="5"/></g>
+    <rect x="28" y="264" width="194" height="100" rx="10" fill="#1d1b2e"/><rect x="160" y="274" width="50" height="22" rx="11" fill="#ffcf3a"/><g fill="#fff" opacity=".4"><rect x="40" y="306" width="150" height="8" rx="4"/><rect x="40" y="324" width="120" height="8" rx="4"/><rect x="40" y="342" width="140" height="8" rx="4"/></g>
+    <rect x="95" y="402" width="60" height="6" rx="3" fill="#fff" opacity=".4"/></g>
+  </svg>
+ </div>
+</section>
+
+<section class="slide wide" data-title="網站設計重點">
+ <div class="t">
+  <span class="kicker" style="--k:var(--org)">網站第一版</span>
+  <h2>四個讓網站比文件好用的設計</h2>
+  <div class="grid4" style="margin-top:24px">
+   <div class="card"><svg viewBox="0 0 120 90" style="width:100%;height:110px"><path d="M10 60 L40 35 L70 60 L100 35" fill="none" stroke="#1d1b2e" stroke-width="4" stroke-dasharray="2 8" stroke-linecap="round" opacity=".4"/><circle cx="10" cy="60" r="10" fill="#e8473b"/><circle cx="40" cy="35" r="10" fill="#e8473b"/><circle cx="70" cy="60" r="10" fill="#fff" stroke="#1d1b2e" stroke-width="3"/><circle cx="100" cy="35" r="10" fill="#fff" stroke="#1d1b2e" stroke-width="3"/></svg><b>遊戲化關卡</b>勾完檢核就過關，地圖會亮起來</div>
+   <div class="card"><svg viewBox="0 0 120 90" style="width:100%;height:110px"><rect x="8" y="10" width="50" height="22" rx="6" fill="#fffaf0" stroke="#1d1b2e" stroke-width="3"/><path d="M60 21 H74" stroke="#e8590c" stroke-width="4"/><rect x="40" y="40" width="74" height="44" rx="8" fill="#1d1b2e"/><rect x="50" y="52" width="30" height="8" rx="4" fill="#ffcf3a"/><rect x="50" y="66" width="50" height="6" rx="3" fill="#fff" opacity=".5"/></svg><b>提示詞自動帶入</b>填過的年級、單元會出現在每一關的提示詞</div>
+   <div class="card"><svg viewBox="0 0 120 90" style="width:100%;height:110px"><rect x="30" y="16" width="60" height="64" rx="8" fill="#137a7f"/><rect x="42" y="16" width="36" height="22" fill="#fff"/><rect x="40" y="52" width="40" height="20" rx="4" fill="#fff" opacity=".5"/></svg><b>自動儲存</b>存在瀏覽器裡，不需帳號、不收個資</div>
+   <div class="card"><svg viewBox="0 0 120 90" style="width:100%;height:110px"><path d="M38 10 H72 L88 26 V82 H38Z" fill="#fff" stroke="#1d1b2e" stroke-width="3"/><path d="M72 10 V26 H88" fill="none" stroke="#1d1b2e" stroke-width="3"/><text x="63" y="64" text-anchor="middle" font-size="16" font-weight="800" fill="#e8590c">HTML</text></svg><b>單一 HTML 檔</b>不用安裝工具，上傳一個檔案就能更新</div>
+  </div>
+ </div>
+</section>
+
+<section class="slide" data-title="活動 2">
+ <div class="t">
+  <span class="kicker" style="--k:var(--org)">課堂活動 2｜20 分鐘</span>
+  <h2>把你的學習單<br>做成網站</h2>
+  <div class="prompt" style="font-size:20px">把上面的學習單做成互動網站：單一 HTML 檔，資料存在瀏覽器，每個步驟的提示詞都要可以一鍵複製。<button class="copy">複製</button></div>
+  <ol style="margin-top:18px;font-size:21px"><li>打開網站試用 5 分鐘</li><li>寫下 3 個想改的地方</li><li>下一節課會用到這張清單</li></ol>
+ </div>
+ <div class="pic">
+  <svg viewBox="0 0 560 600" role="img" aria-label="試用網站並寫下問題">
+   <g transform="translate(40,60)"><rect width="300" height="220" rx="16" fill="#1d1b2e"/><rect x="10" y="30" width="280" height="180" rx="8" fill="#fff"/><rect x="10" y="30" width="280" height="44" fill="#ffcf3a"/><g fill="#fbf8ef" stroke="#e6e2d6" stroke-width="2"><rect x="26" y="92" width="110" height="46" rx="8"/><rect x="152" y="92" width="120" height="46" rx="8"/><rect x="26" y="150" width="246" height="44" rx="8"/></g></g>
+   <g transform="translate(250,250) rotate(4)"><rect width="270" height="300" rx="14" fill="#ffcf3a"/><text x="24" y="54" font-size="26" font-weight="900">想改的地方</text>
+    <g font-size="22"><text x="24" y="110">1. ＿＿＿＿＿＿</text><text x="24" y="170">2. ＿＿＿＿＿＿</text><text x="24" y="230">3. ＿＿＿＿＿＿</text></g></g>
+   <g transform="translate(200,330) rotate(-35)"><rect width="22" height="150" rx="4" fill="#e8473b"/><path d="M0 150 L11 180 L22 150Z" fill="#1d1b2e"/></g>
+  </svg>
+ </div>
+</section>
+
+<section class="slide div" style="background:var(--pink)" data-title="階段三">
+ <div class="t" style="top:220px;width:900px"><span class="kicker" style="--k:#9c1f4c">階段三｜第 3 節</span><h1>部署上線</h1><p style="font-size:30px">讓別人也能用</p></div>
+ <div class="num">3</div>
+</section>
+
+<section class="slide wide" data-title="GitHub Pages 五步驟">
+ <div class="t">
+  <span class="kicker" style="--k:var(--pink)">Prompt 5–6｜部署到 GitHub</span>
+  <h2>GitHub Pages 五個步驟</h2>
+  <svg viewBox="0 0 1136 250" style="width:100%;height:250px;margin-top:10px" role="img" aria-label="五個部署步驟">
+   <g font-size="20" font-weight="700" text-anchor="middle">
+    <g transform="translate(110,100)"><rect x="-70" y="-60" width="140" height="120" rx="18" fill="#fbe7ee"/><path d="M-30 -20 h60 v50 h-60z" fill="#fff" stroke="#d6336c" stroke-width="4"/><path d="M-30 -20 l10 -12 h40 l10 12" fill="none" stroke="#d6336c" stroke-width="4"/><text y="100">建立 repository</text></g>
+    <g transform="translate(340,100)"><rect x="-70" y="-60" width="140" height="120" rx="18" fill="#fbe7ee"/><path d="M-22 -30 h32 l14 14 v46 h-46z" fill="#fff" stroke="#d6336c" stroke-width="4"/><path d="M0 26 V-6 M-12 6 L0 -6 L12 6" stroke="#d6336c" stroke-width="4" fill="none"/><text y="100">上傳 index.html</text></g>
+    <g transform="translate(570,100)"><rect x="-70" y="-60" width="140" height="120" rx="18" fill="#fbe7ee"/><circle r="26" fill="none" stroke="#d6336c" stroke-width="8" stroke-dasharray="10 6"/><circle r="10" fill="#d6336c"/><text y="100">Settings → Pages</text></g>
+    <g transform="translate(800,100)"><rect x="-70" y="-60" width="140" height="120" rx="18" fill="#fbe7ee"/><rect x="-50" y="-16" width="100" height="32" rx="16" fill="#fff" stroke="#d6336c" stroke-width="4"/><text y="7" font-size="14" fill="#d6336c">.github.io</text><text y="100">取得網址</text></g>
+    <g transform="translate(1030,100)"><rect x="-70" y="-60" width="140" height="120" rx="18" fill="#d6336c"/><g fill="#fff"><rect x="-30" y="-30" width="22" height="22"/><rect x="8" y="-30" width="22" height="22"/><rect x="-30" y="8" width="22" height="22"/><rect x="10" y="10" width="8" height="8"/><rect x="22" y="22" width="8" height="8"/><rect x="22" y="10" width="8" height="8"/></g><text y="100">QR Code 分享</text></g>
+   </g>
+   <g stroke="#1d1b2e" stroke-width="4" stroke-linecap="round" opacity=".35"><path d="M196 100 H254"/><path d="M426 100 H484"/><path d="M656 100 H714"/><path d="M886 100 H944"/></g>
+  </svg>
+  <p style="font-size:21px">Branch 選 <b>main</b>、資料夾選 <b>/ (root)</b>，等 1–2 分鐘就會出現 <b>https://帳號.github.io/名稱/</b></p>
+ </div>
+</section>
+
+<section class="slide" data-title="遇到的問題">
+ <div class="t">
+  <span class="kicker" style="--k:var(--pink)">真實踩雷</span>
+  <h2>部署時遇到的<br>三個問題</h2>
+  <table><thead><tr><th>狀況</th><th>解法</th></tr></thead><tbody>
+   <tr><td>AI 無法直接上傳（403）</td><td>改用已登入的瀏覽器在 GitHub 網頁上傳</td></tr>
+   <tr><td>預覽中無法列印、下載</td><td>到 GitHub Pages 正式網址使用</td></tr>
+   <tr><td>手機看到舊版</td><td>等 1–2 分鐘，網址加 ?v=2</td></tr>
+  </tbody></table>
+ </div>
+ <div class="pic">
+  <svg viewBox="0 0 560 600" role="img" aria-label="三個警示與解法">
+   <g transform="translate(140,140)"><path d="M0 -90 L90 70 H-90Z" fill="#ffcf3a" stroke="#1d1b2e" stroke-width="6" stroke-linejoin="round"/><rect x="-7" y="-40" width="14" height="60" rx="7" fill="#1d1b2e"/><circle cy="44" r="9" fill="#1d1b2e"/></g>
+   <g transform="translate(400,170)"><rect x="-90" y="-70" width="180" height="140" rx="18" fill="#fbe7ee" stroke="#d6336c" stroke-width="4"/><text text-anchor="middle" y="22" font-size="64" font-weight="800" font-family="Baloo 2" fill="#d6336c">403</text></g>
+   <g transform="translate(150,420)"><rect x="-100" y="-80" width="200" height="160" rx="18" fill="#fff" stroke="#1d1b2e" stroke-width="4" stroke-dasharray="12 8"/><path d="M-40 -10 h80 v50 h-80z" fill="#e6e2d6"/><path d="M-26 -10 v-20 a26 26 0 0 1 52 0 v20" fill="none" stroke="#1d1b2e" stroke-width="6"/></g>
+   <g transform="translate(410,430)"><rect x="-70" y="-110" width="140" height="220" rx="22" fill="#1d1b2e"/><rect x="-58" y="-90" width="116" height="180" rx="6" fill="#fff"/><path d="M-20 -10 a30 30 0 1 1 10 30" fill="none" stroke="#137a7f" stroke-width="8" stroke-linecap="round"/><path d="M-30 18 L-10 22 L-14 2" fill="none" stroke="#137a7f" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></g>
+  </svg>
+ </div>
+</section>
+
+<section class="slide div" style="background:var(--pur)" data-title="階段四">
+ <div class="t" style="top:220px;width:900px"><span class="kicker" style="--k:#4a2ab0">階段四｜第 3–4 節</span><h1>迭代優化</h1><p style="font-size:30px">上線之後才是真正的開始</p></div>
+ <div class="num">4</div>
+</section>
+
+<section class="slide" data-title="迭代循環">
+ <div class="t">
+  <span class="kicker" style="--k:var(--pur)">Prompt 7–9</span>
+  <h2>檢查 → 回饋 → 修正</h2>
+  <ul style="font-size:21px">
+   <li>「遊戲型態太少，應該還有 RPG、射擊遊戲、3D 島嶼」<br><span class="muted">→ 新增 41 種，共 92 種</span></li>
+   <li>「部署平台與問卷要分開，每個單元一個頁面」<br><span class="muted">→ 10 關、一關一頁</span></li>
+   <li>「問卷分大類、附原始與近期論文 APA 引用」<br><span class="muted">→ 6 大類 12 個量表，逐筆查證</span></li>
+  </ul>
+ </div>
+ <div class="pic">
+  <svg viewBox="0 0 560 600" role="img" aria-label="檢查回饋修正的循環">
+   <defs><marker id="ah" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#1d1b2e"/></marker></defs>
+   <circle cx="280" cy="300" r="190" fill="none" stroke="#1d1b2e" stroke-width="8" stroke-dasharray="30 22" opacity=".18"/>
+   <path d="M350 120 A190 190 0 0 1 455 335" fill="none" stroke="#1d1b2e" stroke-width="6" marker-end="url(#ah)"/>
+   <path d="M385 470 A190 190 0 0 1 175 470" fill="none" stroke="#1d1b2e" stroke-width="6" marker-end="url(#ah)"/>
+   <path d="M105 335 A190 190 0 0 1 210 120" fill="none" stroke="#1d1b2e" stroke-width="6" marker-end="url(#ah)"/>
+   <g font-size="30" font-weight="900" fill="#fff" text-anchor="middle">
+    <circle cx="280" cy="110" r="72" fill="#7048e8"/><text x="280" y="121">檢查</text>
+    <circle cx="460" cy="420" r="72" fill="#e8473b"/><text x="460" y="431">回饋</text>
+    <circle cx="100" cy="420" r="72" fill="#137a7f"/><text x="100" y="431">修正</text></g>
+   <text x="280" y="320" text-anchor="middle" font-size="64" font-weight="800" font-family="Baloo 2" fill="#1d1b2e">×N</text>
+  </svg>
+ </div>
+</section>
+
+<section class="slide" data-title="Prompt 11 前後對照">
+ <div class="t">
+  <span class="kicker" style="--k:var(--pur)">Prompt 11</span>
+  <h2>具體的回饋，<br>改得最準</h2>
+  <div class="prompt" style="font-size:22px">banner不要佔去太多行，這樣可觀看內容太少<button class="copy">複製</button></div>
+  <p style="margin-top:18px">一句話同時說出<b>位置</b>（banner）、<b>問題</b>（太多行）與<b>目的</b>（看到更多內容）。</p>
+  <p class="big" style="color:var(--coral)">440 → 180<span style="font-size:28px">px</span></p>
+ </div>
+ <div class="pic">
+  <svg viewBox="0 0 560 600" role="img" aria-label="橫幅縮小前後對照">
+   <g font-size="22" font-weight="800" text-anchor="middle"><text x="140" y="40">改之前</text><text x="420" y="40">改之後</text></g>
+   <g transform="translate(30,60)"><rect width="220" height="500" rx="18" fill="#1d1b2e"/><rect x="10" y="30" width="200" height="460" rx="8" fill="#fff"/><rect x="10" y="30" width="200" height="290" fill="#ffcf3a"/><rect x="26" y="50" width="150" height="16" rx="8" fill="#1d1b2e"/><rect x="26" y="76" width="120" height="16" rx="8" fill="#1d1b2e"/><rect x="26" y="104" width="160" height="8" rx="4" fill="#1d1b2e" opacity=".4"/><rect x="26" y="118" width="140" height="8" rx="4" fill="#1d1b2e" opacity=".4"/><text x="26" y="166" font-size="30" font-family="Baloo 2" font-weight="800">40%</text>
+    <g fill="#e8473b"><circle cx="40" cy="250" r="12"/><circle cx="80" cy="220" r="12"/></g><g fill="#fff" stroke="#1d1b2e" stroke-width="2"><circle cx="120" cy="250" r="12"/><circle cx="160" cy="220" r="12"/></g>
+    <g fill="#e6e2d6"><rect x="26" y="340" width="168" height="40" rx="8"/><rect x="26" y="392" width="168" height="40" rx="8"/></g></g>
+   <g transform="translate(310,60)"><rect width="220" height="500" rx="18" fill="#1d1b2e"/><rect x="10" y="30" width="200" height="460" rx="8" fill="#fff"/><rect x="10" y="30" width="200" height="120" fill="#ffcf3a"/><rect x="26" y="46" width="110" height="14" rx="7" fill="#1d1b2e"/><text x="150" y="60" font-size="18" font-family="Baloo 2" font-weight="800">40%</text>
+    <g fill="#e8473b"><circle cx="34" cy="110" r="9"/><circle cx="64" cy="96" r="9"/></g><g fill="#fff" stroke="#1d1b2e" stroke-width="2"><circle cx="94" cy="110" r="9"/><circle cx="124" cy="96" r="9"/><circle cx="154" cy="110" r="9"/><circle cx="184" cy="96" r="9"/></g>
+    <g fill="#e6e2d6"><rect x="26" y="170" width="168" height="40" rx="8"/><rect x="26" y="222" width="168" height="40" rx="8"/><rect x="26" y="274" width="168" height="40" rx="8"/><rect x="26" y="326" width="168" height="40" rx="8"/><rect x="26" y="378" width="168" height="40" rx="8"/><rect x="26" y="430" width="168" height="40" rx="8"/></g></g>
+  </svg>
+ </div>
+</section>
+
+<section class="slide" data-title="Prompt 13–14">
+ <div class="t">
+  <span class="kicker" style="--k:var(--pur)">Prompt 13–14</span>
+  <h2>請 AI 當檢查員，<br>人來決定做什麼</h2>
+  <div class="prompt" style="font-size:22px">check 網站有無什麼可以優化的<button class="copy">複製</button></div>
+  <p style="margin-top:16px">AI 用電腦與手機寬度逐頁檢查，列出 <b>13 項建議</b>並排序。老師挑出想做的：</p>
+  <ul style="font-size:21px"><li>列印另存 PDF</li><li>下載檔案與備份</li><li>遊戲類型先分大類</li></ul>
+ </div>
+ <div class="pic">
+  <svg viewBox="0 0 560 600" role="img" aria-label="AI 列出建議清單，老師挑選">
+   <g transform="translate(20,50)"><rect width="320" height="470" rx="18" fill="#fffaf0" stroke="#1d1b2e" stroke-width="3"/><text x="24" y="48" font-size="24" font-weight="900">AI 的建議清單</text>
+    <g font-size="18"><g transform="translate(24,76)"><rect width="272" height="36" rx="8" fill="#7048e8" fill-opacity=".15"/><text x="12" y="25">1 問卷頁太長</text></g><g transform="translate(24,120)"><rect width="272" height="36" rx="8" fill="#7048e8" fill-opacity=".15"/><text x="12" y="25">2 選取列太高</text></g><g transform="translate(24,164)"><rect width="272" height="36" rx="8" fill="#e8473b" fill-opacity=".25"/><text x="12" y="25">3 類型沒有搜尋分類 ✓</text></g><g transform="translate(24,208)"><rect width="272" height="36" rx="8" fill="#e8473b" fill-opacity=".25"/><text x="12" y="25">4 沒有備份檔 ✓</text></g><g transform="translate(24,252)"><rect width="272" height="36" rx="8" fill="#e8473b" fill-opacity=".25"/><text x="12" y="25">5 沒有列印 ✓</text></g><g transform="translate(24,296)"><rect width="272" height="36" rx="8" fill="#7048e8" fill-opacity=".15"/><text x="12" y="25">6 缺分享預覽</text></g><g transform="translate(24,340)"><rect width="272" height="36" rx="8" fill="#7048e8" fill-opacity=".15"/><text x="12" y="25">7 按鈕偏小</text></g><text x="36" y="420" fill="#5d5a6e">… 共 13 項</text></g></g>
+   <g transform="translate(450,290)"><circle r="78" fill="#ffcf3a"/><circle cx="-24" cy="-16" r="8" fill="#1d1b2e"/><circle cx="24" cy="-16" r="8" fill="#1d1b2e"/><path d="M-30 22 Q0 48 30 22" fill="none" stroke="#1d1b2e" stroke-width="7" stroke-linecap="round"/><rect x="-56" y="86" width="112" height="110" rx="40" fill="#137a7f"/></g>
+   <text x="450" y="200" text-anchor="middle" font-size="22" font-weight="800">老師挑選</text>
+  </svg>
+ </div>
+</section>
+
+<section class="slide wide" data-title="提示詞八技巧">
+ <div class="t">
+  <span class="kicker" style="--k:var(--ink)">整理</span>
+  <h2>從 16 則提示詞歸納的 8 個技巧</h2>
+  <div class="grid4" style="margin-top:20px;gap:14px">
+   <div class="card" style="--c:var(--teal)"><span class="n">1</span><b>先給骨架</b>列出步驟，AI 照骨架填內容</div>
+   <div class="card" style="--c:var(--teal)"><span class="n">2</span><b>要求自我檢查</b>「分析是否還有不足」</div>
+   <div class="card" style="--c:var(--teal)"><span class="n">3</span><b>要求列全</b>「列出所有可用的類型」</div>
+   <div class="card" style="--c:var(--org)"><span class="n">4</span><b>指定格式</b>中英對照、APA、可複製</div>
+   <div class="card" style="--c:var(--org)"><span class="n">5</span><b>換形式</b>「做成互動網站」</div>
+   <div class="card" style="--c:var(--pur)"><span class="n">6</span><b>具體回饋</b>位置＋問題＋目的</div>
+   <div class="card" style="--c:var(--pur)"><span class="n">7</span><b>補充例子</b>「還有 RPG、射擊、3D 島嶼」</div>
+   <div class="card" style="--c:var(--pink)"><span class="n">8</span><b>保留紀錄</b>PROMPTS.md 交給下一個 AI</div>
+  </div>
+ </div>
+</section>
+
+<section class="slide wide" data-title="回饋公式">
+ <div class="t">
+  <span class="kicker" style="--k:var(--coral)">最重要的一張</span>
+  <h2>好回饋＝位置＋問題＋目的</h2>
+  <svg viewBox="0 0 1136 220" style="width:100%;height:220px;margin:10px 0" role="img" aria-label="回饋公式">
+   <g font-size="34" font-weight="900" text-anchor="middle" fill="#fff">
+    <rect x="20" y="40" width="300" height="140" rx="28" fill="#137a7f"/><text x="170" y="122">位置</text>
+    <rect x="418" y="40" width="300" height="140" rx="28" fill="#e8473b"/><text x="568" y="122">問題</text>
+    <rect x="816" y="40" width="300" height="140" rx="28" fill="#7048e8"/><text x="966" y="122">目的</text></g>
+   <g font-size="64" font-weight="900" fill="#1d1b2e" text-anchor="middle"><text x="369" y="132">+</text><text x="767" y="132">+</text></g>
+  </svg>
+  <div class="grid2">
+   <div class="card"><b style="color:var(--muted)">✗ 模糊</b>「版面不好看」</div>
+   <div class="card" style="background:#fff3c4"><b>✓ 具體</b>「<u>banner</u> 佔去<u>太多行</u>，<u>可觀看內容太少</u>」</div>
+  </div>
+ </div>
+</section>
+
+<section class="slide wide" data-title="查證與倫理">
+ <div class="t">
+  <span class="kicker" style="--k:var(--pink)">第 4 節</span>
+  <h2>AI 的內容要人來把關</h2>
+  <div class="grid4" style="margin-top:20px">
+   <div class="card"><svg viewBox="0 0 120 90" style="width:100%;height:100px"><circle cx="52" cy="42" r="26" fill="none" stroke="#d6336c" stroke-width="8"/><path d="M72 62 L98 86" stroke="#d6336c" stroke-width="10" stroke-linecap="round"/></svg><b>文獻查證</b>每筆 APA 用 DOI 核對；找不到就如實標註</div>
+   <div class="card"><svg viewBox="0 0 120 90" style="width:100%;height:100px"><circle cx="60" cy="45" r="36" fill="none" stroke="#e8590c" stroke-width="8"/><text x="60" y="60" text-anchor="middle" font-size="40" font-weight="900" fill="#e8590c">C</text></svg><b>著作權</b>只有 SUS 用原題，其餘為改編示例</div>
+   <div class="card"><svg viewBox="0 0 120 90" style="width:100%;height:100px"><path d="M60 8 L98 22 V48 C98 70 80 82 60 88 C40 82 22 70 22 48 V22Z" fill="#137a7f"/><path d="M44 48 l12 12 l22 -24" stroke="#fff" stroke-width="7" fill="none"/></svg><b>個資安全</b>資料只存瀏覽器；只收座號不收姓名</div>
+   <div class="card"><svg viewBox="0 0 120 90" style="width:100%;height:100px"><circle cx="60" cy="30" r="20" fill="#7048e8"/><rect x="30" y="54" width="60" height="34" rx="16" fill="#7048e8"/></svg><b>作者是你</b>註明使用的 AI 工具，保留提示詞紀錄</div>
+  </div>
+  <div class="act" style="margin-top:22px"><b>課堂活動（10 分鐘）</b>：從成品網站第 5 關任選 2 筆文獻，用 DOI 核對作者、年份、期刊、頁碼，回報全班。</div>
+ </div>
+</section>
+
+<section class="slide" data-title="學生實作任務">
+ <div class="t">
+  <span class="kicker" style="--k:var(--teal)">小組實作｜2–3 人</span>
+  <h2>開發你自己的<br>規劃型網站</h2>
+  <ol style="font-size:21px"><li>選題：科展、校外教學、成果展…</li><li>寫 5–8 步驟的骨架提示詞</li><li>至少一次「找不足」與「列全」</li><li>做成單一 HTML 互動網站</li><li>部署到 GitHub Pages</li><li>依同儕回饋修改兩輪</li><li>放上 PROMPTS.md 紀錄</li></ol>
+ </div>
+ <div class="pic">
+  <svg viewBox="0 0 560 600" role="img" aria-label="七個步驟的階梯">
+   <g font-family="Baloo 2" font-weight="800" font-size="30" fill="#fff" text-anchor="middle">
+    <rect x="20" y="500" width="74" height="70" rx="10" fill="#137a7f"/><text x="57" y="546">1</text>
+    <rect x="94" y="430" width="74" height="140" rx="10" fill="#137a7f" opacity=".9"/><text x="131" y="476">2</text>
+    <rect x="168" y="360" width="74" height="210" rx="10" fill="#e8590c"/><text x="205" y="406">3</text>
+    <rect x="242" y="290" width="74" height="280" rx="10" fill="#e8590c" opacity=".9"/><text x="279" y="336">4</text>
+    <rect x="316" y="220" width="74" height="350" rx="10" fill="#d6336c"/><text x="353" y="266">5</text>
+    <rect x="390" y="150" width="74" height="420" rx="10" fill="#7048e8"/><text x="427" y="196">6</text>
+    <rect x="464" y="80" width="74" height="490" rx="10" fill="#7048e8" opacity=".9"/><text x="501" y="126">7</text></g>
+   <g transform="translate(501,40)"><path d="M0 40 V-20" stroke="#1d1b2e" stroke-width="5"/><path d="M0 -20 L40 -8 L0 4Z" fill="#ffcf3a" stroke="#1d1b2e" stroke-width="3"/></g>
+  </svg>
+ </div>
+</section>
+
+<section class="slide wide" data-title="起手提示詞">
+ <div class="t">
+  <span class="kicker" style="--k:var(--teal)">給學生的起手提示詞</span>
+  <h2>複製、填空、開始</h2>
+  <div class="prompt" style="font-size:23px">我要規劃【主題】，對象是【誰】。請幫我做一份 checklist 學習單，步驟如下：
+1. 【步驟一】　2. 【步驟二】　3. 【步驟三】　4. 【步驟四】　5. 【步驟五】
+每個步驟請包含：要填寫的項目、檢核清單，以及一則可以直接複製給 AI 的提示詞。
+完成後，請分析還有哪些不足之處。<button class="copy">複製</button></div>
+  <div class="prompt" style="font-size:21px;margin-top:16px;background:#2b2547">請修改【哪一頁／哪個區塊】：
+問題：【看到什麼】　目的：【希望達到什麼效果】
+不要改動其他正常的功能，修改後條列說明你改了哪些地方。<button class="copy">複製</button></div>
+ </div>
+</section>
+
+<section class="slide wide" data-title="評量規準">
+ <div class="t">
+  <span class="kicker" style="--k:var(--ink)">評量規準</span>
+  <h2>五個向度，每項 1–4 分</h2>
+  <table style="font-size:19px"><thead><tr><th style="width:16%">向度</th><th>優秀（4）</th><th>良好（3）</th><th>待加強（1–2）</th></tr></thead><tbody>
+   <tr><td><b>提示詞設計</b></td><td>骨架清楚，用 4 種以上技巧</td><td>有骨架，用 2–3 種技巧</td><td>一句籠統需求</td></tr>
+   <tr><td><b>網站功能</b></td><td>步驟完整、提示詞帶入資料、手機可用</td><td>步驟完整、提示詞可複製</td><td>內容不完整或無法操作</td></tr>
+   <tr><td><b>迭代修正</b></td><td>兩輪以上，每輪說明問題與目的</td><td>修改一輪</td><td>沒有修改</td></tr>
+   <tr><td><b>查證與倫理</b></td><td>逐筆核對事實與文獻，註明 AI 使用</td><td>核對部分內容</td><td>未核對</td></tr>
+   <tr><td><b>部署與紀錄</b></td><td>網址可用，PROMPTS.md 完整</td><td>網址可用，紀錄不完整</td><td>未上線</td></tr>
+  </tbody></table>
+ </div>
+</section>
+
+<section class="slide title" data-title="資源">
+ <div class="t" style="top:90px;width:1136px">
+  <span class="kicker" style="--k:var(--ink)">資源</span>
+  <h1 style="font-size:58px">動手試試看</h1>
+  <div class="grid2" style="margin-top:26px">
+   <div class="card" style="background:#fff"><b>成品網站</b>profchwu.github.io/AIgameplan</div>
+   <div class="card" style="background:#fff"><b>原始碼與開發紀錄</b>github.com/profchwu/AIgameplan</div>
+   <div class="card" style="background:#fff"><b>提示詞原文</b>docs/PROMPTS.md（16 則）</div>
+   <div class="card" style="background:#fff"><b>交給 ChatGPT 優化</b>docs/CHATGPT-OPTIMIZE.md</div>
+  </div>
+  <p style="margin-top:26px;font-size:22px"><b>吳智鴻 教授</b>｜國立清華大學 數理教育研究所</p>
+ </div>
+ <div class="foot"><span>© 2026 吳智鴻．國立清華大學數理教育研究所．版權所有</span><span>教學使用請註明出處</span></div>
+</section>
+
+</div>
+
+<div class="bar" role="toolbar" aria-label="簡報控制">
+ <div class="prog" id="prog"></div>
+ <button id="prev" aria-label="上一頁">◀</button>
+ <span class="count" id="count">1 / 27</span>
+ <button id="next" class="pri" aria-label="下一頁">▶</button>
+ <span class="sp"></span>
+ <button id="ovBtn">總覽</button>
+ <button id="fsBtn">全螢幕</button>
+ <button id="prBtn">列印／PDF</button>
+ <a href="./">回網站</a>
+</div>
+<div class="toast" id="toast" role="status"></div>
+<script>
+{
+const deck=document.getElementById('deck');const S=[...deck.querySelectorAll('.slide')];const N=S.length;let i=0;
+const isOv=()=>document.body.classList.contains('ov');
+const fit=()=>{if(isOv())return;const k=Math.min(innerWidth/1280,(innerHeight-56)/720)*0.98;S.forEach(s=>{s.style.transform=`scale(${k})`;});};
+const go=n=>{i=Math.max(0,Math.min(N-1,n));S.forEach((s,j)=>s.classList.toggle('cur',j===i));document.getElementById('count').textContent=`${i+1} / ${N}`;document.getElementById('prog').style.width=((i+1)/N*100)+'%';if(location.hash!=='#'+(i+1))history.replaceState(null,'','#'+(i+1));};
+const fromHash=()=>{const n=parseInt(location.hash.slice(1),10);go(isNaN(n)?0:n-1);};
+let tt;const toast=m=>{const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),1500);};
+const ov=on=>{document.body.classList.toggle('ov',on);
+ if(on){S.forEach((s,j)=>{const w=document.createElement('div');w.className='wrapov'+(j===i?' cur':'');s.before(w);w.append(s);s.style.transform='';});document.getElementById('ovBtn').textContent='返回簡報';}
+ else{S.forEach(s=>{const w=s.parentElement;if(w.classList.contains('wrapov')){w.before(s);w.remove();}});document.getElementById('ovBtn').textContent='總覽';fit();go(i);}};
+document.getElementById('prev').onclick=()=>go(i-1);
+document.getElementById('next').onclick=()=>go(i+1);
+document.getElementById('ovBtn').onclick=()=>ov(!isOv());
+document.getElementById('fsBtn').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch(e){toast('此瀏覽器不支援全螢幕');}};
+document.getElementById('prBtn').onclick=()=>{if(isOv())ov(false);try{window.print();}catch(e){toast('請用瀏覽器選單的「列印」');}};
+deck.addEventListener('click',async e=>{const c=e.target.closest('.copy');
+ if(c){e.stopPropagation();const p=c.parentElement.cloneNode(true);p.querySelector('.copy').remove();const txt=p.textContent.trim();try{await navigator.clipboard.writeText(txt);toast('已複製');}catch(_){const a=document.createElement('textarea');a.value=txt;document.body.append(a);a.select();let ok=false;try{ok=document.execCommand('copy')}catch(__){}a.remove();toast(ok?'已複製':'請手動選取文字');}return;}
+ if(isOv()){const s=e.target.closest('.slide');if(s){i=S.indexOf(s);ov(false);}}});
+addEventListener('keydown',e=>{if(e.target.closest('input,textarea'))return;const k=e.key;
+ if(['ArrowRight','PageDown',' ','Enter'].includes(k)&&!e.target.closest('button')){e.preventDefault();go(i+1);}
+ else if(['ArrowLeft','PageUp'].includes(k)){e.preventDefault();go(i-1);}
+ else if(k==='ArrowRight'){go(i+1);}
+ else if(k==='Home')go(0);else if(k==='End')go(N-1);
+ else if(k==='o'||k==='O')ov(!isOv());
+ else if(k==='f'||k==='F')document.getElementById('fsBtn').click();
+ else if(k==='Escape'&&isOv())ov(false);});
+let sx=null;deck.addEventListener('touchstart',e=>{sx=e.touches[0].clientX},{passive:true});deck.addEventListener('touchend',e=>{if(sx===null||isOv())return;const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>50)go(i+(dx<0?1:-1));sx=null;});
+addEventListener('resize',fit);addEventListener('hashchange',fromHash);
+addEventListener('beforeprint',()=>{S.forEach(s=>s.style.transform='none');});addEventListener('afterprint',fit);
+fit();fromHash();
+}
+</script>
+</body>
+</html>
